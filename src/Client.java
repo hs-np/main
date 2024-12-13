@@ -42,7 +42,8 @@ public class Client extends JFrame {
         return this.connectState;
     }
 
-    private JPanel currentPanel; // 추가할 패널을 저장할 변수
+//    private JPanel startPanel; // 추가할 패널을 저장할 변수
+//    private JPanel MatchingPanel; // 추가할 패널을 저장할 변수
 
     public Client(String address, String port){
         this.address = address;
@@ -57,12 +58,10 @@ public class Client extends JFrame {
     public void startGUI(){
         this.add(new JScrollPane(serverChat));
 
-        currentPanel = paintPanel();
-        this.getContentPane().add(currentPanel, BorderLayout.CENTER);
+        this.getContentPane().add(paintPanel(), BorderLayout.CENTER);
 
         serverChat = new JTextArea(20,10);
         this.getContentPane().add(serverChat, BorderLayout.EAST);
-
         controlPanel = controlPanel();
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         controlPanel.setVisible(false);
@@ -353,6 +352,15 @@ public class Client extends JFrame {
         bw.write("매칭\n");
         bw.flush();
         serverChat.append("클라: 매칭 중...\n");
+
+        JPanel matchingPanel = new DotAndBoxGamePanel(4); // 4x4 점
+        this.getContentPane().removeAll();
+        this.getContentPane().add(matchingPanel, BorderLayout.CENTER);
+        this.getContentPane().add(serverChat, BorderLayout.EAST);
+        this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
+        this.revalidate();
+        this.repaint();
+
         setConnectState(new Matching());
     }
     public void requestMatchingToNotConnected() throws IOException{
@@ -371,8 +379,10 @@ public class Client extends JFrame {
 
         JPanel gamePanel = new DotAndBoxGamePanel(4); // 4x4 점
         this.getContentPane().removeAll();
-        currentPanel = new DotAndBoxGamePanel(4);
-        this.getContentPane().add(currentPanel, BorderLayout.CENTER);
+//        currentPanel = new DotAndBoxGamePanel(4);
+        this.getContentPane().add(gamePanel, BorderLayout.CENTER);
+        this.getContentPane().add(serverChat, BorderLayout.EAST);
+        this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
         this.repaint();
 
