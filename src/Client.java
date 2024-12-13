@@ -164,7 +164,7 @@ public class Client extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.out.println(currentLine.p1.x + " , "+currentLine.p1.y + " , "+currentLine.p2.x + " , "+ currentLine.p2.y);
-                String msg = currentLine.p1.x + " , "+currentLine.p1.y + " , "+currentLine.p2.x + " , "+ currentLine.p2.y+"\n";
+                String msg =login.getText() + ":"+ currentLine.p1.x + ","+currentLine.p1.y + ","+currentLine.p2.x + ","+ currentLine.p2.y+"\n";
                 try{
                     bw.write(msg);
                     bw.flush();

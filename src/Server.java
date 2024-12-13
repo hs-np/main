@@ -1,13 +1,12 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.List;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Vector;
+import java.util.*;
 
 public class Server extends JFrame{
 
@@ -31,12 +30,17 @@ public class Server extends JFrame{
 
     private ObjectInputStream ois = null;
     private BufferedWriter br = null;
+    ObservableDeque<String> deque = new ObservableDeque<>();
+    DequeLogger<String> logger = new DequeLogger<>();
+
+    // 옵저버 설정
 
     public Server(String address, String port){
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setBounds(800, 300, 500, 500);
         this.setTitle("ObjectInputServer GUI");
         this.port = port;
+        deque.setObserver(logger);
         ServerGUI();
         this.setVisible(true);
 
@@ -213,6 +217,7 @@ public class Server extends JFrame{
                     handleGameEnd();
                     break;
                 default:
+                    deque.add(msg);
                     broadCast(msg);
                     break;
             }
@@ -285,5 +290,61 @@ public class Server extends JFrame{
         String address = "localhost";
         String port = "1234";
         new Server(address , port);
+    }
+
+    // Observer 인터페이스 정의
+    interface DequeObserver<E> {
+        void onElementAdded(E element);
+        void onElementRemoved(E element);
+    }
+
+    // ObservableDeque 클래스
+    class ObservableDeque<E> {
+        private final Deque<E> deque = new ArrayDeque<>();
+        private DequeObserver<E> observer; // 단일 옵저버
+
+        // 옵저버 등록
+        public void setObserver(DequeObserver<E> observer) {
+            this.observer = observer;
+        }
+
+        // 요소 추가
+        public void add(E element) {
+            deque.add(element);
+            if (observer != null) {
+                observer.onElementAdded(element);
+            }
+        }
+
+        // 요소 제거
+        public E remove() {
+            E removed = deque.remove();
+            if (observer != null) {
+                observer.onElementRemoved(removed);
+            }
+            return removed;
+        }
+
+        // 기타 Deque 메서드 위임 (필요 시 추가 가능)
+        public boolean isEmpty() {
+            return deque.isEmpty();
+        }
+
+        public E peek() {
+            return deque.peek();
+        }
+    }
+
+    // 예제: 옵저버 구현
+    class DequeLogger<E> implements DequeObserver<E> {
+        @Override
+        public void onElementAdded(E element) {
+            System.out.println("Element added: " + element);
+        }
+
+        @Override
+        public void onElementRemoved(E element) {
+            System.out.println("Element removed: " + element);
+        }
     }
 }
