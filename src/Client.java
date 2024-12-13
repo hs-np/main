@@ -27,6 +27,7 @@ public class Client extends JFrame {
     private BufferedReader br;
     private Thread acceptThread;
     //계속 서버에서의 메시지를 받고 연결을 유지하기 위해 멀티 스레드 결정.
+    private Line currentLine; // 현재 선을 저장하는 전역 변수
 
     private JPanel controlPanel;
     private JButton matching = new JButton("매칭");
@@ -159,7 +160,20 @@ public class Client extends JFrame {
                 endGame();
             }
         });
-
+        turn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println(currentLine.p1.x + " , "+currentLine.p1.y + " , "+currentLine.p2.x + " , "+ currentLine.p2.y);
+                String msg = currentLine.p1.x + " , "+currentLine.p1.y + " , "+currentLine.p2.x + " , "+ currentLine.p2.y+"\n";
+                try{
+                    bw.write(msg);
+                    bw.flush();
+                }
+                catch(IOException e1){
+                    System.out.println("currentLine 오류");
+                }
+            }
+        });
         backTurn.setEnabled(false);
         turn.setEnabled(false);
         controlPanel.add(matching);
@@ -208,14 +222,14 @@ public class Client extends JFrame {
 
     public void startConnect() throws IOException {
         String msg = br.readLine();
-        //while ((msg = br.readLine()) != null) {
+        while ((msg = br.readLine()) != null) {
             if(msg.equals("게임시작")){
                 startGame();
             }
             //매칭 방에 사람이 두명 이상 존재하면 바로 팀 매칭이 됨.
             serverChat.append(msg+"\n");
             //displayDotAndBoxGame();
-        //}
+        }
     }
 
     interface ConnectState {
@@ -401,14 +415,13 @@ public class Client extends JFrame {
         private boolean[][] horizontalLines;
         private boolean[][] verticalLines;
         private int dotSpacing = 100; // 점 사이 간격
-        private Line currentLine; // 현재 선을 저장하는 전역 변수
         private Queue<Point> clickedPoints; // 최근 클릭된 두 점을 저장하는 큐
 
         public DotAndBoxGamePanel(int gridSize) {
             this.gridSize = gridSize;
             this.horizontalLines = new boolean[gridSize][gridSize - 1];
             this.verticalLines = new boolean[gridSize - 1][gridSize];
-            this.currentLine = null; // 초기에는 선이 없도록 설정
+            currentLine = null; // 초기에는 선이 없도록 설정
             this.clickedPoints = new LinkedList<>(); // 큐 초기화
             setPreferredSize(new Dimension(400, 400));
             setBackground(Color.WHITE);
@@ -462,6 +475,7 @@ public class Client extends JFrame {
                 if (isValidLine(firstPoint, secondPoint)) {
                     if (currentLine == null || !currentLine.contains(firstPoint, secondPoint)) {
                         currentLine = new Line(firstPoint, secondPoint); // 선을 새로 설정
+                        System.out.println(currentLine.p1.x + " , "+currentLine.p1.y + " , "+currentLine.p2.x + " , "+ currentLine.p2.y);
                         updateLineArrays(currentLine);
                         repaint();
                     }

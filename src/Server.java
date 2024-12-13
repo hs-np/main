@@ -213,7 +213,8 @@ public class Server extends JFrame{
                     handleGameEnd();
                     break;
                 default:
-                    System.out.println("알 수 없는 메시지: " + msg);
+                    broadCast(msg);
+                    break;
             }
         }
         // 매칭 처리
