@@ -31,4 +31,9 @@ class Line implements Serializable {
     public boolean equals(Line other) {
         return (p1.equals(other.p1) && p2.equals(other.p2)) || (p1.equals(other.p2) && p2.equals(other.p1));
     }
+
+    // 선이 두 점을 포함하는지 확인
+    public boolean contains(Point point1, Point point2) {
+        return (p1.equals(point1) && p2.equals(point2)) || (p1.equals(point2) && p2.equals(point1));
+    }
 }

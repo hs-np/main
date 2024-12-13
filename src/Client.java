@@ -9,6 +9,8 @@ import java.awt.event.MouseEvent;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class Client extends JFrame {
 
@@ -346,22 +348,22 @@ public class Client extends JFrame {
                 }
             }
         });
+        serverChat.append("111");
         acceptThread.start();
     }
     public void notConnectedToRequestMatching() throws IOException{
         bw.write("매칭\n");
         bw.flush();
         serverChat.append("클라: 매칭 중...\n");
+        setConnectState(new Matching());
 
-        JPanel matchingPanel = new DotAndBoxGamePanel(4); // 4x4 점
+        JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
         this.getContentPane().removeAll();
         this.getContentPane().add(matchingPanel, BorderLayout.CENTER);
         this.getContentPane().add(serverChat, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
         this.repaint();
-
-        setConnectState(new Matching());
     }
     public void requestMatchingToNotConnected() throws IOException{
         if (connectState.getClass() == new Matching().getClass()) {
@@ -376,17 +378,15 @@ public class Client extends JFrame {
         matching.setEnabled(false);
         backTurn.setEnabled(true);
         turn.setEnabled(true);
+        setConnectState(new InGame());
 
         JPanel gamePanel = new DotAndBoxGamePanel(4); // 4x4 점
         this.getContentPane().removeAll();
-//        currentPanel = new DotAndBoxGamePanel(4);
         this.getContentPane().add(gamePanel, BorderLayout.CENTER);
         this.getContentPane().add(serverChat, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
         this.repaint();
-
-        setConnectState(new InGame());
     }
     public void inGameToNotConnected() throws IOException{
         serverChat.append("게임이 종료되었습니다.");
@@ -399,7 +399,7 @@ public class Client extends JFrame {
     }
     //상태에 따른 로직 메소드
 
-    class DotAndBoxGamePanel extends JPanel {
+    class PraticeGamePanel extends JPanel {
         private int gridSize;
         private boolean[][] horizontalLines;
         private boolean[][] verticalLines;
@@ -408,7 +408,7 @@ public class Client extends JFrame {
         private int dotSpacing = 100; // 점 사이 간격
         private Point firstSelectedPoint;
 
-        public DotAndBoxGamePanel(int gridSize) {
+        public PraticeGamePanel(int gridSize) {
             this.gridSize = gridSize;
             this.horizontalLines = new boolean[gridSize][gridSize - 1];
             this.verticalLines = new boolean[gridSize - 1][gridSize];
@@ -457,7 +457,7 @@ public class Client extends JFrame {
                     if (boxes[i][j]) {
                         int x = 50 + j * dotSpacing;
                         int y = 50 + i * dotSpacing;
-                        g.fillRect(x + 5, y + 5, dotSpacing - 10, dotSpacing - 10);
+                        g.fillRect(x+1, y+1, dotSpacing-1, dotSpacing-1);
                     }
                 }
             }
@@ -524,6 +524,111 @@ public class Client extends JFrame {
                         boxes[i][j] = true;
                     }
                 }
+            }
+        }
+    }
+
+    class DotAndBoxGamePanel extends JPanel {
+        private int gridSize;
+        private boolean[][] horizontalLines;
+        private boolean[][] verticalLines;
+        private int dotSpacing = 100; // 점 사이 간격
+        private Line currentLine; // 현재 선을 저장하는 전역 변수
+        private Queue<Point> clickedPoints; // 최근 클릭된 두 점을 저장하는 큐
+
+        public DotAndBoxGamePanel(int gridSize) {
+            this.gridSize = gridSize;
+            this.horizontalLines = new boolean[gridSize][gridSize - 1];
+            this.verticalLines = new boolean[gridSize - 1][gridSize];
+            this.currentLine = null; // 초기에는 선이 없도록 설정
+            this.clickedPoints = new LinkedList<>(); // 큐 초기화
+            setPreferredSize(new Dimension(400, 400));
+            setBackground(Color.WHITE);
+
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    Point clickedPoint = new Point(e.getX(), e.getY());
+                    handleMouseClick(clickedPoint);
+                }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            g.setColor(Color.BLACK);
+
+            // 점 그리기
+            for (int i = 0; i < gridSize; i++) {
+                for (int j = 0; j < gridSize; j++) {
+                    int x = 50 + j * dotSpacing;
+                    int y = 50 + i * dotSpacing;
+                    g.fillOval(x - 5, y - 5, 10, 10);
+                }
+            }
+
+            // 선 그리기
+            g.setColor(Color.BLUE);
+            if (currentLine != null) {
+                int x1 = 50 + currentLine.p1.x * dotSpacing;
+                int y1 = 50 + currentLine.p1.y * dotSpacing;
+                int x2 = 50 + currentLine.p2.x * dotSpacing;
+                int y2 = 50 + currentLine.p2.y * dotSpacing;
+                g.drawLine(x1, y1, x2, y2);
+            }
+        }
+
+        private void handleMouseClick(Point clickPoint) {
+            Point gridPoint = getNearestGridPoint(clickPoint);
+            if (gridPoint == null) return;
+
+            clickedPoints.offer(gridPoint); // 클릭된 점을 큐에 추가
+
+            if (clickedPoints.size() == 2) {
+                Point firstPoint = clickedPoints.poll(); // 첫 번째 점 제거
+                Point secondPoint = clickedPoints.peek(); // 두 번째 점 확인
+
+                // 선의 유효성 검사
+                if (isValidLine(firstPoint, secondPoint)) {
+                    if (currentLine == null || !currentLine.contains(firstPoint, secondPoint)) {
+                        currentLine = new Line(firstPoint, secondPoint); // 선을 새로 설정
+                        updateLineArrays(currentLine);
+                        repaint();
+                    }
+                }
+            }
+        }
+
+        private Point getNearestGridPoint(Point clickPoint) {
+            int x = (clickPoint.x - 50 + dotSpacing / 2) / dotSpacing;
+            int y = (clickPoint.y - 50 + dotSpacing / 2) / dotSpacing;
+
+            if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
+                return new Point(x, y);
+            }
+            return null;
+        }
+
+        // 선이 유효한지 검사 (1칸 위, 아래, 좌, 우만 가능)
+        private boolean isValidLine(Point firstPoint, Point secondPoint) {
+            int dx = Math.abs(firstPoint.x - secondPoint.x);
+            int dy = Math.abs(firstPoint.y - secondPoint.y);
+
+            // 1칸 차이 나는 선만 유효 (수평 또는 수직)
+            return (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
+        }
+
+        private void updateLineArrays(Line line) {
+            if (line.p1.x == line.p2.x) { // 수직 선
+                int x = line.p1.x;
+                int y = Math.min(line.p1.y, line.p2.y);
+                verticalLines[y][x] = true;
+            } else if (line.p1.y == line.p2.y) { // 수평 선
+                int x = Math.min(line.p1.x, line.p2.x);
+                int y = line.p1.y;
+                horizontalLines[y][x] = true;
             }
         }
     }
