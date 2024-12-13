@@ -29,6 +29,9 @@ public class Server extends JFrame{
     ));
     //회원관리를 위한 해시맵 컬렉션: 아이디와 비밀번호를 key, value 값으로 설정하여 로그인 확인 시 빠르게 찾을 수 있어 적절하다고 판단.
 
+    private ObjectInputStream ois = null;
+    private BufferedWriter br = null;
+
     public Server(String address, String port){
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setBounds(800, 300, 500, 500);
@@ -84,8 +87,6 @@ public class Server extends JFrame{
         return controlPanel;
     }
     public void startServer() {
-        ObjectInputStream ois = null;
-        BufferedWriter br = null;
         try (ServerSocket serverSocket = new ServerSocket(12345)) {
             server_display.append("서버가 시작되었습니다\n");
 
@@ -95,38 +96,8 @@ public class Server extends JFrame{
                  br = new BufferedWriter(new OutputStreamWriter(cs.getOutputStream()));
 
                     LoginData data = (LoginData) ois.readObject();
-                    String loginId = data.getId();
-                    String loginPw = data.getPw();
-                    String mode = data.getMode();
-
                     server_display.append("로그인 전.\n");
-
-                    if ("로그인".equals(mode)) {
-                        if (userLoginData.containsKey(loginId) && userLoginData.get(loginId).equals(loginPw)) {
-                            br.write("로그인수락\n");
-                            br.flush();
-                            server_display.append("로그인수락.\n");
-                            User user = new User(cs, loginId);
-                            users.add(user);
-                            user.start();
-                        } else {
-                            server_display.append("로그인 실패.\n");
-                            br.write("로그인실패\n");
-                            br.flush();
-                        }
-                    }
-                    else if("회원가입".equals(mode)){
-                        if(!userLoginData.containsKey(loginId)){
-                            server_display.append("회원가입성공\n");
-                            userLoginData.put(loginId, loginPw);
-                            br.write("회원가입성공\n");
-                            br.flush();
-                        }
-                        else{
-                            br.write("회원가입실패\n");
-                            br.flush();
-                        }
-                    }
+                    SignupSigninProcess(cs, data);
             }
         } catch (IOException e) {
             server_display.append("startServer 오류 발생\n");
@@ -141,6 +112,39 @@ public class Server extends JFrame{
             }catch(IOException e){
                 System.out.println(e.getMessage());
             }
+        }
+    }
+    public void SignupSigninProcess(Socket cs, LoginData data) throws IOException{
+        String loginId = data.getId();
+        String loginPw = data.getPw();
+        String mode = data.getMode();
+        switch(mode){
+            case "로그인":
+                if (userLoginData.containsKey(loginId) && userLoginData.get(loginId).equals(loginPw)) {
+                    br.write("로그인수락\n");
+                    br.flush();
+                    server_display.append("로그인수락.\n");
+                    User user = new User(cs, loginId);
+                    users.add(user);
+                    user.start();
+                } else {
+                    server_display.append("로그인 실패.\n");
+                    br.write("로그인실패\n");
+                    br.flush();
+                }
+                break;
+            case "회원가입":
+                if(!userLoginData.containsKey(loginId)){
+                    server_display.append("회원가입 성공\n");
+                    userLoginData.put(loginId, loginPw);
+                    br.write("회원가입성공\n");
+                    br.flush();
+                }
+                else{
+                    br.write("회원가입실패\n");
+                    br.flush();
+                }
+                break;
         }
     }
     public void disconnect() {
