@@ -295,6 +295,9 @@ public class Client extends JFrame {
                 startGame();
             }
             //매칭 방에 사람이 두명 이상 존재하면 바로 팀 매칭이 됨.
+            else if(msg.equals("게임종료")){
+                endGame();
+            }
             serverChat.append(msg+"\n");
             if(msg.contains(":")){
                 String[] lineData = msg.split(":");
@@ -402,7 +405,6 @@ public class Client extends JFrame {
         public void login(Client client) {
 
         }
-
 
     }
     //게임 중인 상태.
