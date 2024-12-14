@@ -1,12 +1,12 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.List;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.List;
 
 public class Server extends JFrame{
 
@@ -30,11 +30,11 @@ public class Server extends JFrame{
 
     private ObjectInputStream ois = null;
     private BufferedWriter br = null;
-    ObservableDeque<String> deque = new ObservableDeque<>();
-    DequeLogger<String> logger = new DequeLogger<>();
+    ObservableDeque deque = new ObservableDeque();
+    DequeLogger logger = new DequeLogger();
 
-    private ArrayDeque<String> player1 = new ArrayDeque<>();
-    private ArrayDeque<String> player2 = new ArrayDeque<>();
+    private ObservableDeque player1 = new ObservableDeque();
+    private ObservableDeque player2 = new ObservableDeque();
     private String player1Name = "";
 
     // 옵저버 설정
@@ -44,7 +44,8 @@ public class Server extends JFrame{
         this.setBounds(800, 300, 500, 500);
         this.setTitle("ObjectInputServer GUI");
         this.port = port;
-        deque.setObserver(logger);
+        player1.addObserver(logger);
+        player2.addObserver(logger);
         ServerGUI();
         this.setVisible(true);
 
@@ -222,23 +223,23 @@ public class Server extends JFrame{
                     break;
                 default:
                     broadCast(msg);
-                    deque.add(msg);
+                    //deque.add(msg);
                     String[] lineData = msg.split(":");
                     if(player1Name == ""){
                         player1Name = lineData[0];
                         player1.add(lineData[1]);
-                        System.out.println(player1Name);
-                        System.out.println(player1.peek());
+                        //System.out.println(player1Name);
+                        //System.out.println(player1.peek());
                         break;
                     }
                     if(lineData[0].equals(player1Name)){
                         player1.add(lineData[1]);
-                        System.out.println(player1.peek());
+                        //System.out.println(player1.peek());
                         break;
                     }
                     else{
                         player2.add(lineData[1]);
-                        System.out.println(player2.peek());
+                        //System.out.println(player2.peek());
                         break;
                     }
             }
@@ -314,33 +315,38 @@ public class Server extends JFrame{
     }
 
     // Observer 인터페이스 정의
-    interface DequeObserver<E> {
-        void onElementAdded(E element);
-        void onElementRemoved(E element);
+    interface DequeObserver {
+        void onElementAdded(String element);
+        void onElementRemoved(String element);
     }
 
     // ObservableDeque 클래스
-    class ObservableDeque<E> {
-        private final Deque<E> deque = new ArrayDeque<>();
-        private DequeObserver<E> observer; // 단일 옵저버
+    class ObservableDeque {
+        private final Deque<String> deque = new ArrayDeque<>();
+        private final List<DequeObserver> observers = new ArrayList<>(); // 여러 옵저버를 관리
 
         // 옵저버 등록
-        public void setObserver(DequeObserver<E> observer) {
-            this.observer = observer;
+        public void addObserver(DequeObserver observer) {
+            observers.add(observer);
+        }
+
+        // 옵저버 제거
+        public void removeObserver(DequeObserver observer) {
+            observers.remove(observer);
         }
 
         // 요소 추가
-        public void add(E element) {
+        public void add(String element) {
             deque.add(element);
-            if (observer != null) {
+            for (DequeObserver observer : observers) {
                 observer.onElementAdded(element);
             }
         }
 
         // 요소 제거
-        public E remove() {
-            E removed = deque.remove();
-            if (observer != null) {
+        public String remove() {
+            String removed = deque.remove();
+            for (DequeObserver observer : observers) {
                 observer.onElementRemoved(removed);
             }
             return removed;
@@ -351,20 +357,20 @@ public class Server extends JFrame{
             return deque.isEmpty();
         }
 
-        public E peek() {
+        public String peek() {
             return deque.peek();
         }
     }
 
     // 예제: 옵저버 구현
-    class DequeLogger<E> implements DequeObserver<E> {
+    class DequeLogger implements DequeObserver {
         @Override
-        public void onElementAdded(E element) {
+        public void onElementAdded(String element) {
             System.out.println("Element added: " + element);
         }
 
         @Override
-        public void onElementRemoved(E element) {
+        public void onElementRemoved(String element) {
             System.out.println("Element removed: " + element);
         }
     }
