@@ -33,6 +33,10 @@ public class Server extends JFrame{
     ObservableDeque<String> deque = new ObservableDeque<>();
     DequeLogger<String> logger = new DequeLogger<>();
 
+    private ArrayDeque<String> player1 = new ArrayDeque<>();
+    private ArrayDeque<String> player2 = new ArrayDeque<>();
+    private String player1Name = "";
+
     // 옵저버 설정
 
     public Server(String address, String port){
@@ -217,9 +221,26 @@ public class Server extends JFrame{
                     handleGameEnd();
                     break;
                 default:
-                    deque.add(msg);
                     broadCast(msg);
-                    break;
+                    deque.add(msg);
+                    String[] lineData = msg.split(":");
+                    if(player1Name == ""){
+                        player1Name = lineData[0];
+                        player1.add(lineData[1]);
+                        System.out.println(player1Name);
+                        System.out.println(player1.peek());
+                        break;
+                    }
+                    if(lineData[0].equals(player1Name)){
+                        player1.add(lineData[1]);
+                        System.out.println(player1.peek());
+                        break;
+                    }
+                    else{
+                        player2.add(lineData[1]);
+                        System.out.println(player2.peek());
+                        break;
+                    }
             }
         }
         // 매칭 처리
