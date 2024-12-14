@@ -228,9 +228,9 @@ public class Client extends JFrame {
 
     private void handleTurnEnd(String lineData) {
             matchingLine.add(lineData); // 상대방 선 정보 추가
-//            SwingUtilities.invokeLater(() -> {
-//                repaint(); // GUI 갱신
-//            });
+            SwingUtilities.invokeLater(() -> {
+                repaint(); // GUI 갱신
+            });
         //if (matchingLine.size() >= 4) { // 최소 4개의 선이 있어야 사각형을 찾을 수 있음
         //    System.out.println("사각형검사");
             //checkSquare(); // 선들이 사각형을 이루는지 확인
@@ -300,6 +300,7 @@ public class Client extends JFrame {
                 if(lineData.length == 3){
                     System.out.println(lineData[0]+","+lineData[1]+","+lineData[2]);
                     myRect.add(lineData[2]);
+                    repaint();
                     continue;
                 }
                 System.out.println(lineData[0]+","+lineData[1]);
@@ -517,6 +518,7 @@ public class Client extends JFrame {
 
                     // 사각형 그리기
                     g.fillRect(startX, startY, width, height);
+//                    repaint(); // GUI 갱신
                 }
             }
         }
@@ -609,9 +611,10 @@ public class Client extends JFrame {
             drawLinesFromMyLine(g);
             drawLinesFromMatchingLine(g);
             drawRectanglesFromMyRect(g);
-            SwingUtilities.invokeLater(() -> {
-                repaint(); // GUI 갱신
-            });
+            //            repaint(); // GUI 갱신
+//            SwingUtilities.invokeLater(() -> {
+//                repaint(); // GUI 갱신
+//            });
         }
 
         private void handleMouseClick(Point clickPoint) {

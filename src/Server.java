@@ -37,6 +37,9 @@ public class Server extends JFrame{
     private ObservableDeque player2 = new ObservableDeque();
     private String player1Name = "";
     private String rectPoint = "";
+    private int player1RectNum = 0;
+    private int player2RectNum = 0;
+    private List<String> list = new ArrayList<>();
 
     // 옵저버 설정
 
@@ -200,11 +203,26 @@ public class Server extends JFrame{
                 String msg;
                 while((msg = ((BufferedReader)testReader).readLine()) != null){
                     processMessage(msg);
-                    if(!rectPoint.equals("")){
-                        SwingUtilities.invokeLater(() -> {
-                            broadCast(loginId+":"+"사각형:"+rectPoint);
-                        });
-                    }
+                    SwingUtilities.invokeLater(() -> {
+                        synchronized (this) {
+                            // 로컬 변수에 복사
+                            // rectPoint 초기화
+                            String tempPoint = rectPoint;
+                            if (!tempPoint.equals("")) {
+                                broadCast(loginId + ":" + "사각형:" + tempPoint);
+                                if (loginId.equals(player1Name)) {
+                                    player1RectNum++;
+                                } else {
+                                    player2RectNum++;
+                                }
+                                if (player1RectNum == 1) {
+                                    broadCast("게임종료");
+                                }
+                                System.out.println("tempPoint는 "+tempPoint);
+                            }
+                            //rectPoint = "";
+                        }
+                    });
                 }
 
             }
@@ -373,6 +391,9 @@ public class Server extends JFrame{
         @Override
         public void onElementAdded(String element, Deque<String> deque) {
             rectPoint = checkSquare(deque);
+            if(!rectPoint.equals("")){
+                //if()
+            }
             System.out.println("Element added: " + element);
         }
 
@@ -394,6 +415,15 @@ public class Server extends JFrame{
             }
             return s;
         }
+        private boolean checkExistedSquare(String str){
+            if(list.size() != 0){
+                for(String square: list){
+                    if(square.equals(str))return false;
+                }
+                return true;
+            }
+            else return true;
+        }
 
         private String checkSquare(Deque<String> deque) {
             // 사각형을 이루는 선을 확인
@@ -406,31 +436,73 @@ public class Server extends JFrame{
                 int x2a = Integer.parseInt(points1[2]);
                 int y2a = Integer.parseInt(points1[3]);
 
-                String s = sortLine(x1a,y1a,x2a,y2a);
-                String s2 = sortLine(x1a,y1a,x1a+1,y1a);
-                String s3 = sortLine(x2a,y2a,x2a+1,y2a);
-                String s4 = sortLine(x1a+1,y1a,x2a+1,y2a);
+                if(y1a == y2a){
+                    String s = sortLine(x1a,y1a,x2a,y2a);
+                    String s2 = sortLine(x1a,y1a,x1a,y1a+1);
+                    String s3 = sortLine(x2a,y2a,x2a,y1a+1);
+                    String s4 = sortLine(x1a,y1a+1,x2a,y1a+1);
 
-                for (String lineData2 : deque) {
-                    if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
+                    for (String lineData2 : deque) {
+                        if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
 
-                    String[] points2 = lineData2.split(",");
-                    int x1b = Integer.parseInt(points2[0]);
-                    int y1b = Integer.parseInt(points2[1]);
-                    int x2b = Integer.parseInt(points2[2]);
-                    int y2b = Integer.parseInt(points2[3]);
-                    String c = sortLine(x1b,y1b,x2b,y2b);
-                    System.out.println("정렬된 :"+c);
-                    if(c.equals(s2)||c.equals(s3)||c.equals(s4)){
-                        count++;
+                        String[] points2 = lineData2.split(",");
+                        int x1b = Integer.parseInt(points2[0]);
+                        int y1b = Integer.parseInt(points2[1]);
+                        int x2b = Integer.parseInt(points2[2]);
+                        int y2b = Integer.parseInt(points2[3]);
+                        String c = sortLine(x1b,y1b,x2b,y2b);
+                        //System.out.println("정렬된 :"+c);
+                        if(c.equals(s2)||c.equals(s3)||c.equals(s4)){
+                            count++;
+                        }
                     }
+                    System.out.println(count);
+                    if(count == 3){
+                        //System.out.println(x1a+","+y1a+","+(x1a+1)+","+y2a);
+                        if(!checkExistedSquare(x1a+","+y1a+","+(x2a)+","+(y1a+1))){
+                            count = 0;
+                            continue;
+                        }
+                        System.out.println("발견");
+                        list.add(x1a+","+y1a+","+(x2a)+","+(y1a+1));
+                        return x1a+","+y1a+","+(x2a)+","+(y1a+1);
+                    }
+                    else count = 0;
                 }
-                System.out.println(count);
-                if(count == 3){
-                    System.out.println("발견");
-                    return x1a+","+y1a+","+(x1a+1)+","+y2a;
+                else{
+                    String s = sortLine(x1a,y1a,x2a,y2a);
+                    String s2 = sortLine(x1a,y1a,x1a+1,y1a);
+                    String s3 = sortLine(x2a,y2a,x2a+1,y2a);
+                    String s4 = sortLine(x1a+1,y1a,x2a+1,y2a);
+
+                    for (String lineData2 : deque) {
+                        if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
+
+                        String[] points2 = lineData2.split(",");
+                        int x1b = Integer.parseInt(points2[0]);
+                        int y1b = Integer.parseInt(points2[1]);
+                        int x2b = Integer.parseInt(points2[2]);
+                        int y2b = Integer.parseInt(points2[3]);
+                        String c = sortLine(x1b,y1b,x2b,y2b);
+                        //System.out.println("정렬된 :"+c);
+                        if(c.equals(s2)||c.equals(s3)||c.equals(s4)){
+                            count++;
+                        }
+                    }
+                    System.out.println(count);
+                    if(count == 3){
+                        //System.out.println(x1a+","+y1a+","+(x1a+1)+","+y2a);
+
+                        if(!checkExistedSquare(x1a+","+y1a+","+(x1a+1)+","+y2a)){
+                            count = 0;
+                            continue;
+                        }
+                        System.out.println("발견");
+                        list.add(x1a+","+y1a+","+(x1a+1)+","+y2a);
+                        return x1a+","+y1a+","+(x1a+1)+","+y2a;
+                    }
+                    else count = 0;
                 }
-                else count = 0;
             }
             return "";
         }
