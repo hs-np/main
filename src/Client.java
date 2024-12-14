@@ -8,7 +8,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -28,6 +28,10 @@ public class Client extends JFrame {
     private Thread acceptThread;
     //계속 서버에서의 메시지를 받고 연결을 유지하기 위해 멀티 스레드 결정.
     private Line currentLine; // 현재 선을 저장하는 전역 변수
+
+    private ArrayDeque<String> myLine = new ArrayDeque<>();
+    private ArrayDeque<String> matchingLine = new ArrayDeque<>();
+    private String userId;
 
     private JPanel controlPanel;
     private JButton matching = new JButton("매칭");
@@ -163,7 +167,7 @@ public class Client extends JFrame {
         turn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println(currentLine.p1.x + " , "+currentLine.p1.y + " , "+currentLine.p2.x + " , "+ currentLine.p2.y);
+                //System.out.println(currentLine.p1.x + " , "+currentLine.p1.y + " , "+currentLine.p2.x + " , "+ currentLine.p2.y);
                 String msg =login.getText() + ":"+ currentLine.p1.x + ","+currentLine.p1.y + ","+currentLine.p2.x + ","+ currentLine.p2.y+"\n";
                 try{
                     bw.write(msg);
@@ -184,6 +188,7 @@ public class Client extends JFrame {
     }
 
     public LoginData makeloginData(String str){
+        userId = login.getText();
         String idData = login.getText();
         String pwData = password.getText();
         LoginData loginData = new LoginData(idData, pwData, str);
@@ -228,7 +233,17 @@ public class Client extends JFrame {
             }
             //매칭 방에 사람이 두명 이상 존재하면 바로 팀 매칭이 됨.
             serverChat.append(msg+"\n");
-            //displayDotAndBoxGame();
+            if(msg.contains(":")){
+                String[] lineData = msg.split(":");
+                System.out.println(lineData[0]+","+lineData[1]);
+                if(lineData[0].equals(userId)){
+                    myLine.add(lineData[1]);
+                    System.out.println("1");
+                    //System.out.println(login.getText()+"의 "+myLine.peek());
+                }
+                else matchingLine.add(lineData[1]);
+                //System.out.println(matchingLine.peek());
+            }
         }
     }
 
@@ -417,6 +432,49 @@ public class Client extends JFrame {
         private int dotSpacing = 100; // 점 사이 간격
         private Queue<Point> clickedPoints; // 최근 클릭된 두 점을 저장하는 큐
 
+        // myLine 큐에서 선 정보를 읽어와 그리기
+        private void drawLinesFromMyLine(Graphics g) {
+            g.setColor(Color.BLACK); // myLine의 선은 빨간색으로 설정
+            System.out.println(login.getText()+"가 그린 선: "+ myLine);
+            for (String lineData : myLine) {
+                String[] points = lineData.split(",");
+                if (points.length == 4) {
+                    int x1 = Integer.parseInt(points[0]);
+                    int y1 = Integer.parseInt(points[1]);
+                    int x2 = Integer.parseInt(points[2]);
+                    int y2 = Integer.parseInt(points[3]);
+
+                    int startX = 50 + x1 * dotSpacing;
+                    int startY = 50 + y1 * dotSpacing;
+                    int endX = 50 + x2 * dotSpacing;
+                    int endY = 50 + y2 * dotSpacing;
+
+                    g.drawLine(startX, startY, endX, endY);
+                }
+            }
+        }
+
+        private void drawLinesFromMatchingLine(Graphics g) {
+            g.setColor(Color.RED); // myLine의 선은 빨간색으로 설정
+            System.out.println(login.getText()+"가 그린 선: "+ myLine);
+            for (String lineData : matchingLine) {
+                String[] points = lineData.split(",");
+                if (points.length == 4) {
+                    int x1 = Integer.parseInt(points[0]);
+                    int y1 = Integer.parseInt(points[1]);
+                    int x2 = Integer.parseInt(points[2]);
+                    int y2 = Integer.parseInt(points[3]);
+
+                    int startX = 50 + x1 * dotSpacing;
+                    int startY = 50 + y1 * dotSpacing;
+                    int endX = 50 + x2 * dotSpacing;
+                    int endY = 50 + y2 * dotSpacing;
+
+                    g.drawLine(startX, startY, endX, endY);
+                }
+            }
+        }
+
         public DotAndBoxGamePanel(int gridSize) {
             this.gridSize = gridSize;
             this.horizontalLines = new boolean[gridSize][gridSize - 1];
@@ -459,6 +517,9 @@ public class Client extends JFrame {
                 int y2 = 50 + currentLine.p2.y * dotSpacing;
                 g.drawLine(x1, y1, x2, y2);
             }
+            // myLine에 저장된 선 그리기
+            drawLinesFromMyLine(g);
+            drawLinesFromMatchingLine(g);
         }
 
         private void handleMouseClick(Point clickPoint) {
@@ -475,7 +536,6 @@ public class Client extends JFrame {
                 if (isValidLine(firstPoint, secondPoint)) {
                     if (currentLine == null || !currentLine.contains(firstPoint, secondPoint)) {
                         currentLine = new Line(firstPoint, secondPoint); // 선을 새로 설정
-                        System.out.println(currentLine.p1.x + " , "+currentLine.p1.y + " , "+currentLine.p2.x + " , "+ currentLine.p2.y);
                         updateLineArrays(currentLine);
                         repaint();
                     }
