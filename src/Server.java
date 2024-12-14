@@ -36,6 +36,7 @@ public class Server extends JFrame{
     private ObservableDeque player1 = new ObservableDeque();
     private ObservableDeque player2 = new ObservableDeque();
     private String player1Name = "";
+    private String rectPoint = "";
 
     // 옵저버 설정
 
@@ -199,6 +200,11 @@ public class Server extends JFrame{
                 String msg;
                 while((msg = ((BufferedReader)testReader).readLine()) != null){
                     processMessage(msg);
+                    if(!rectPoint.equals("")){
+                        SwingUtilities.invokeLater(() -> {
+                            broadCast(loginId+":"+"사각형:"+rectPoint);
+                        });
+                    }
                 }
 
             }
@@ -316,7 +322,7 @@ public class Server extends JFrame{
 
     // Observer 인터페이스 정의
     interface DequeObserver {
-        void onElementAdded(String element);
+        void onElementAdded(String element, Deque<String> deque);
         void onElementRemoved(String element);
     }
 
@@ -339,7 +345,7 @@ public class Server extends JFrame{
         public void add(String element) {
             deque.add(element);
             for (DequeObserver observer : observers) {
-                observer.onElementAdded(element);
+                observer.onElementAdded(element, deque);
             }
         }
 
@@ -365,13 +371,68 @@ public class Server extends JFrame{
     // 예제: 옵저버 구현
     class DequeLogger implements DequeObserver {
         @Override
-        public void onElementAdded(String element) {
+        public void onElementAdded(String element, Deque<String> deque) {
+            rectPoint = checkSquare(deque);
             System.out.println("Element added: " + element);
         }
 
         @Override
         public void onElementRemoved(String element) {
             System.out.println("Element removed: " + element);
+        }
+
+        private String sortLine(int x1a,int y1a,int x2a,int y2a){
+            String s = x1a+","+y1a+","+x2a+","+y2a;
+
+            if(x1a > x2a){
+                s = x2a+","+y2a+","+x1a+","+y1a;
+            }
+            else if(x1a == x2a){
+                if(y1a > y2a){
+                    s = x2a+","+y2a+","+x1a+","+y1a;
+                }
+            }
+            return s;
+        }
+
+        private String checkSquare(Deque<String> deque) {
+            // 사각형을 이루는 선을 확인
+            int count = 0;
+            for (String lineData1 : deque) {
+                System.out.println(lineData1);
+                String[] points1 = lineData1.split(",");
+                int x1a = Integer.parseInt(points1[0]);
+                int y1a = Integer.parseInt(points1[1]);
+                int x2a = Integer.parseInt(points1[2]);
+                int y2a = Integer.parseInt(points1[3]);
+
+                String s = sortLine(x1a,y1a,x2a,y2a);
+                String s2 = sortLine(x1a,y1a,x1a+1,y1a);
+                String s3 = sortLine(x2a,y2a,x2a+1,y2a);
+                String s4 = sortLine(x1a+1,y1a,x2a+1,y2a);
+
+                for (String lineData2 : deque) {
+                    if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
+
+                    String[] points2 = lineData2.split(",");
+                    int x1b = Integer.parseInt(points2[0]);
+                    int y1b = Integer.parseInt(points2[1]);
+                    int x2b = Integer.parseInt(points2[2]);
+                    int y2b = Integer.parseInt(points2[3]);
+                    String c = sortLine(x1b,y1b,x2b,y2b);
+                    System.out.println("정렬된 :"+c);
+                    if(c.equals(s2)||c.equals(s3)||c.equals(s4)){
+                        count++;
+                    }
+                }
+                System.out.println(count);
+                if(count == 3){
+                    System.out.println("발견");
+                    return x1a+","+y1a+","+(x1a+1)+","+y2a;
+                }
+                else count = 0;
+            }
+            return "";
         }
     }
 }

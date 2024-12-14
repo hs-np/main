@@ -32,6 +32,7 @@ public class Client extends JFrame {
     private ArrayDeque<String> myLine = new ArrayDeque<>();
     private ArrayDeque<String> matchingLine = new ArrayDeque<>();
     private String userId;
+    private ArrayDeque<String> myRect = new ArrayDeque<>();
 
     private JPanel controlPanel;
     private JButton matching = new JButton("매칭");
@@ -227,12 +228,12 @@ public class Client extends JFrame {
 
     private void handleTurnEnd(String lineData) {
             matchingLine.add(lineData); // 상대방 선 정보 추가
-            SwingUtilities.invokeLater(() -> {
-                repaint(); // GUI 갱신
-            });
+//            SwingUtilities.invokeLater(() -> {
+//                repaint(); // GUI 갱신
+//            });
         //if (matchingLine.size() >= 4) { // 최소 4개의 선이 있어야 사각형을 찾을 수 있음
         //    System.out.println("사각형검사");
-            checkSquare(); // 선들이 사각형을 이루는지 확인
+            //checkSquare(); // 선들이 사각형을 이루는지 확인
         //}
     }
     private void checkSquare() {
@@ -296,6 +297,11 @@ public class Client extends JFrame {
             serverChat.append(msg+"\n");
             if(msg.contains(":")){
                 String[] lineData = msg.split(":");
+                if(lineData.length == 3){
+                    System.out.println(lineData[0]+","+lineData[1]+","+lineData[2]);
+                    myRect.add(lineData[2]);
+                    continue;
+                }
                 System.out.println(lineData[0]+","+lineData[1]);
                 if(lineData[0].equals(userId)){
                     myLine.add(lineData[1]);
@@ -492,7 +498,28 @@ public class Client extends JFrame {
         private boolean[][] verticalLines;
         private int dotSpacing = 100; // 점 사이 간격
         private Queue<Point> clickedPoints; // 최근 클릭된 두 점을 저장하는 큐
+        private void drawRectanglesFromMyRect(Graphics g) {
+            g.setColor(Color.GREEN); // 사각형의 색상을 설정
 
+            for (String rectData : myRect) {
+                String[] points = rectData.split(",");
+                if (points.length == 4) {
+                    int x1 = Integer.parseInt(points[0]);
+                    int y1 = Integer.parseInt(points[1]);
+                    int x2 = Integer.parseInt(points[2]);
+                    int y2 = Integer.parseInt(points[3]);
+
+                    // 사각형의 시작점과 크기를 계산
+                    int startX = 50 + Math.min(x1, x2) * dotSpacing;
+                    int startY = 50 + Math.min(y1, y2) * dotSpacing;
+                    int width = Math.abs(x2 - x1) * dotSpacing;
+                    int height = Math.abs(y2 - y1) * dotSpacing;
+
+                    // 사각형 그리기
+                    g.fillRect(startX, startY, width, height);
+                }
+            }
+        }
         // myLine 큐에서 선 정보를 읽어와 그리기
         private void drawLinesFromMyLine(Graphics g) {
             g.setColor(Color.BLACK); // myLine의 선은 빨간색으로 설정
@@ -581,6 +608,10 @@ public class Client extends JFrame {
             // myLine에 저장된 선 그리기
             drawLinesFromMyLine(g);
             drawLinesFromMatchingLine(g);
+            drawRectanglesFromMyRect(g);
+            SwingUtilities.invokeLater(() -> {
+                repaint(); // GUI 갱신
+            });
         }
 
         private void handleMouseClick(Point clickPoint) {
