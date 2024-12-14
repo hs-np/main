@@ -225,10 +225,24 @@ public class Client extends JFrame {
         }
     }
 
+    private void handleTurnEnd(String[] lineData) {
+        if (lineData.length == 4) {
+            String line = String.join(",", lineData);
+            matchingLine.add(line); // 상대방 선 정보 추가
+            SwingUtilities.invokeLater(() -> {
+                repaint(); // GUI 갱신
+            });
+        }
+    }
+
     public void startConnect() throws IOException {
-        String msg = br.readLine();
+        String msg;
         while ((msg = br.readLine()) != null) {
-            if(msg.equals("게임시작")){
+            if (msg.contains(":")) {
+                String[] lineData = msg.split(":")[1].split(",");
+                handleTurnEnd(lineData);
+            }
+            else if(msg.equals("게임시작")){
                 startGame();
             }
             //매칭 방에 사람이 두명 이상 존재하면 바로 팀 매칭이 됨.
