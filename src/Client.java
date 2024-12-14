@@ -226,13 +226,64 @@ public class Client extends JFrame {
     }
 
     private void handleTurnEnd(String lineData) {
-        //if (lineData.length == 2) {
-            //String line = String.join(",", lineData);
             matchingLine.add(lineData); // 상대방 선 정보 추가
             SwingUtilities.invokeLater(() -> {
                 repaint(); // GUI 갱신
             });
+        //if (matchingLine.size() >= 4) { // 최소 4개의 선이 있어야 사각형을 찾을 수 있음
+        //    System.out.println("사각형검사");
+            checkSquare(); // 선들이 사각형을 이루는지 확인
         //}
+    }
+    private void checkSquare() {
+        // 사각형을 이루는 선을 확인
+        for (String lineData1 : matchingLine) {
+            System.out.println(lineData1);
+            String[] points1 = lineData1.split(",");
+            int x1a = Integer.parseInt(points1[0]);
+            int y1a = Integer.parseInt(points1[1]);
+            int x2a = Integer.parseInt(points1[2]);
+            int y2a = Integer.parseInt(points1[3]);
+
+            for (String lineData2 : matchingLine) {
+                if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
+
+                String[] points2 = lineData2.split(",");
+                int x1b = Integer.parseInt(points2[0]);
+                int y1b = Integer.parseInt(points2[1]);
+                int x2b = Integer.parseInt(points2[2]);
+                int y2b = Integer.parseInt(points2[3]);
+
+                // 두 선이 교차점이 있는지 체크
+                if (isIntersecting(x1a, y1a, x2a, y2a, x1b, y1b, x2b, y2b)) {
+                    // 교차점이 있다면, 해당 교차점으로 사각형을 구성할 수 있는지 확인
+                    if (formsRectangle(x1a, y1a, x2a, y2a, x1b, y1b, x2b, y2b)) {
+                        System.out.println("사각형 발견!");
+                        // 사각형을 발견하면 추가 동작을 처리할 수 있음
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isIntersecting(int x1a, int y1a, int x2a, int y2a, int x1b, int y1b, int x2b, int y2b) {
+        // 두 선이 교차하는지 확인하는 방법 (수평, 수직선만 처리)
+        // x1a, y1a, x2a, y2a 는 첫 번째 선의 두 점
+        // x1b, y1b, x2b, y2b 는 두 번째 선의 두 점
+
+        // 교차 조건을 간단히 수평선과 수직선의 교차로 가정
+        return ((x1a == x2a && y1b == y2b && y1a <= y2b && y2a >= y1b) || (y1a == y2a && x1b == x2b && x1a <= x2b && x2a >= x1b));
+    }
+
+    private boolean formsRectangle(int x1a, int y1a, int x2a, int y2a, int x1b, int y1b, int x2b, int y2b) {
+        // 두 선이 사각형을 이루는지 확인
+        // 간단히 말해서, 두 선이 교차하고 사각형의 네 점이 모두 존재하는지 확인
+        // 이 경우 사각형의 나머지 두 선을 구성할 수 있으면 true 반환
+
+        // 조건을 좀 더 세밀하게 다루어야 함 (다양한 방향의 선들을 체크)
+
+        // 예시로 두 선이 수평/수직이 되는 경우에 사각형을 이루는지 확인
+        return (Math.abs(x1a - x1b) == 1 && Math.abs(y1a - y1b) == 1);
     }
 
     public void startConnect() throws IOException {
@@ -249,12 +300,10 @@ public class Client extends JFrame {
                 if(lineData[0].equals(userId)){
                     myLine.add(lineData[1]);
                     System.out.println("1");
-                    //System.out.println(login.getText()+"의 "+myLine.peek());
                 }
                 else {
                     handleTurnEnd(lineData[1]);
                 }
-                //System.out.println(matchingLine.peek());
             }
         }
     }
