@@ -36,6 +36,7 @@ public class Server extends JFrame{
     private ObservableDeque player1 = new ObservableDeque();
     private ObservableDeque player2 = new ObservableDeque();
     private String player1Name = "";
+    private String player2Name = "";
     private String rectPoint = "";
     private int player1RectNum = 0;
     private int player2RectNum = 0;
@@ -204,9 +205,7 @@ public class Server extends JFrame{
                 while((msg = ((BufferedReader)testReader).readLine()) != null){
                     processMessage(msg);
                     SwingUtilities.invokeLater(() -> {
-                        synchronized (this) {
-                            // 로컬 변수에 복사
-                            // rectPoint 초기화
+                        //synchronized (this) {
                             String tempPoint = rectPoint;
                             if (!tempPoint.equals("")) {
                                 broadCast(loginId + ":" + "사각형:" + tempPoint);
@@ -215,13 +214,10 @@ public class Server extends JFrame{
                                 } else {
                                     player2RectNum++;
                                 }
-                                if (player1RectNum == 1) {
+                                if (player1RectNum == 1 || player2RectNum == 1) {
                                     broadCast("게임종료");
                                 }
-                                System.out.println("tempPoint는 "+tempPoint);
                             }
-                            //rectPoint = "";
-                        }
                     });
                 }
 
@@ -247,30 +243,15 @@ public class Server extends JFrame{
                     break;
                 default:
                     broadCast(msg);
-                    //deque.add(msg);
-                    String[] lineData = msg.split(":");
-                    if(player1Name == ""){
-                        player1Name = lineData[0];
-                        player1.add(lineData[1]);
-                        //System.out.println(player1Name);
-                        //System.out.println(player1.peek());
-                        break;
-                    }
-                    if(lineData[0].equals(player1Name)){
-                        player1.add(lineData[1]);
-                        //System.out.println(player1.peek());
-                        break;
-                    }
-                    else{
-                        player2.add(lineData[1]);
-                        //System.out.println(player2.peek());
-                        break;
-                    }
+                    handleGameTurn(msg);
+                    break;
+                    //게임진행
             }
         }
-        // 매칭 처리
+        // 매칭 기능 및 게임시작 기능
         private void handleMatching() {
             if (waitingRoom.isEmpty()) {
+                this.sendMessage("당신의아이디는"+loginId);
                 broadCast(this.loginId + "님이 대기방에 입장했습니다.\n");
                 server_display.append(this.loginId + "님이 대기방에 입장했습니다.\n");
                 waitingRoom.add(this);
@@ -282,18 +263,32 @@ public class Server extends JFrame{
                 gameRoom.add(userMatching);
                 System.out.println(gameRoom);
 
-                matchedUser.sendMessage("게임시작");
-                this.sendMessage("게임시작");
+                player1Name = matchedUser.loginId;
+                player2Name = this.loginId;
+                broadCast("게임시작");
+                broadCast(player1Name+"턴입니다.");
             }
         }
-        // 매칭 취소 처리
+        //게임 진행 기능
+        private void handleGameTurn(String msg){
+            String[] lineData = msg.split(":");
+            if(lineData[0].equals(player1Name)){
+                player1.add(lineData[1]);
+                broadCast(player2Name+"턴입니다.");
+            }
+            else if(lineData[0].equals(player2Name)){
+                player2.add(lineData[1]);
+                broadCast(player1Name+"턴입니다.");
+            }
+        }
+        // 매칭 취소 기능
         private void handleMatchingCancel() {
             synchronized (waitingRoom) {
                 waitingRoom.removeIf(user -> user == this);
                 broadCast(this.loginId + "님이 매칭을 종료했습니다.");
             }
         }
-        // 게임 종료 처리
+        // 게임 종료 기능
         private void handleGameEnd() {
             server_display.append(this.loginId + "님의 게임 중 탈주를 확인했습니다.\n");
             synchronized (gameRoom) {
@@ -327,7 +322,12 @@ public class Server extends JFrame{
                 chatSender.flush();
             }
             catch(IOException e){
-
+                //try{
+                    System.out.println("326SendMessage");
+               // }
+//                catch(IOException e1){
+//
+//                }
             }
         }
     }
@@ -338,70 +338,107 @@ public class Server extends JFrame{
         new Server(address , port);
     }
 
-    // Observer 인터페이스 정의
     interface DequeObserver {
         void onElementAdded(String element, Deque<String> deque);
-        void onElementRemoved(String element);
     }
-
-    // ObservableDeque 클래스
     class ObservableDeque {
         private final Deque<String> deque = new ArrayDeque<>();
-        private final List<DequeObserver> observers = new ArrayList<>(); // 여러 옵저버를 관리
+        private final List<DequeObserver> observers = new ArrayList<>(); // player1, player2 두명의 선을 관리
 
-        // 옵저버 등록
         public void addObserver(DequeObserver observer) {
             observers.add(observer);
         }
 
-        // 옵저버 제거
-        public void removeObserver(DequeObserver observer) {
-            observers.remove(observer);
-        }
-
-        // 요소 추가
         public void add(String element) {
             deque.add(element);
             for (DequeObserver observer : observers) {
                 observer.onElementAdded(element, deque);
             }
         }
-
-        // 요소 제거
-        public String remove() {
-            String removed = deque.remove();
-            for (DequeObserver observer : observers) {
-                observer.onElementRemoved(removed);
-            }
-            return removed;
-        }
-
-        // 기타 Deque 메서드 위임 (필요 시 추가 가능)
-        public boolean isEmpty() {
-            return deque.isEmpty();
-        }
-
-        public String peek() {
-            return deque.peek();
-        }
     }
-
-    // 예제: 옵저버 구현
+    //ObservableDeque는 플레이어가 추가한 선들을 저장하는 기능을 추가하고 DequeLogger를 자동 호출한다.
     class DequeLogger implements DequeObserver {
         @Override
         public void onElementAdded(String element, Deque<String> deque) {
             rectPoint = checkSquare(deque);
-            if(!rectPoint.equals("")){
-                //if()
+        }
+        //선을 추가하면 같이 호출됨.
+        //선을 추가한 뒤 지금까지 만든 선들로 사각형이 구성되는지 판단. 새로운 사각형이 형성되면 좌표를 반환.
+        private String checkSquare(Deque<String> deque) {
+            // 사각형을 이루는 선을 확인
+            int count = 0;
+            for (String lineData1 : deque) {
+                String[] points1 = lineData1.split(",");
+                int x1a = Integer.parseInt(points1[0]);
+                int y1a = Integer.parseInt(points1[1]);
+                int x2a = Integer.parseInt(points1[2]);
+                int y2a = Integer.parseInt(points1[3]);
+
+                if(y1a == y2a){
+                    // 선이 수평이라면
+                    String r2 = sortLine(x1a,y1a,x1a,y1a+1);
+                    String r3 = sortLine(x2a,y2a,x2a,y1a+1);
+                    String r4 = sortLine(x1a,y1a+1,x2a,y1a+1);
+                    // r2,r3,r4는 선이 수평인 경우 사각형이 형성되기 위해 필요한 선 정보이다.
+
+                    for (String lineData2 : deque) {
+                        if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
+                        String c = comparisonLine(lineData2);
+                        if(c.equals(r2)||c.equals(r3)||c.equals(r4)){
+                            count++;
+                        }
+                    }
+                    if(count == 3){
+                        if(!checkExistedSquare(x1a+","+y1a+","+(x2a)+","+(y1a+1))){
+                            count = 0;
+                            continue;
+                        }
+                        // 전에 만든 사각형 정보는 클라이언트가 이미 가지고 있어 다른 사각형을 찾도록 한다.
+                        list.add(x1a+","+y1a+","+(x2a)+","+(y1a+1));
+                        // 이번에 새로 찾은 사각형은 다음 사각형 찾기에서 걸러져야 된다. 따라서 list에 추가한다.
+                        return x1a+","+y1a+","+(x2a)+","+(y1a+1);
+                    }
+                    else count = 0;
+                }
+                else{
+                    //선이 수직인 경우
+                    String r2 = sortLine(x1a,y1a,x1a+1,y1a);
+                    String r3 = sortLine(x2a,y2a,x2a+1,y2a);
+                    String r4 = sortLine(x1a+1,y1a,x2a+1,y2a);
+                    // r2,r3,r4는 선이 수직인 경우 사각형이 형성되기 위해 필요한 선 정보이다.
+
+                    for (String lineData2 : deque) {
+                        if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
+                        String c = comparisonLine(lineData2);
+                        if(c.equals(r2)||c.equals(r3)||c.equals(r4)){
+                            count++;
+                        }
+                    }
+                    if(count == 3){
+                        if(!checkExistedSquare(x1a+","+y1a+","+(x1a+1)+","+y2a)){
+                            count = 0;
+                            continue;
+                            // 전에 만든 사각형 정보는 클라이언트가 이미 가지고 있어 다른 사각형을 찾도록 한다.
+                        }
+                        list.add(x1a+","+y1a+","+(x1a+1)+","+y2a);
+                        // 이번에 새로 찾은 사각형은 다음 사각형 찾기에서 걸러져야 된다. 따라서 list에 추가한다.
+                        return x1a+","+y1a+","+(x1a+1)+","+y2a;
+                    }
+                    else count = 0;
+                }
             }
-            System.out.println("Element added: " + element);
+            return "";
         }
-
-        @Override
-        public void onElementRemoved(String element) {
-            System.out.println("Element removed: " + element);
+        //사각형인지 아닌지 판단하는 기능.
+        private String comparisonLine(String lineData2){
+            String[] points2 = lineData2.split(",");
+            int x1b = Integer.parseInt(points2[0]);
+            int y1b = Integer.parseInt(points2[1]);
+            int x2b = Integer.parseInt(points2[2]);
+            int y2b = Integer.parseInt(points2[3]);
+            return sortLine(x1b,y1b,x2b,y2b);
         }
-
+        //사각형을 만들기 위해 필요한 선과 비교하기 위해 sortLine를 호출하여 lineData2라는 선을 가공한다.
         private String sortLine(int x1a,int y1a,int x2a,int y2a){
             String s = x1a+","+y1a+","+x2a+","+y2a;
 
@@ -415,6 +452,8 @@ public class Server extends JFrame{
             }
             return s;
         }
+        //선을 표현할 수 있는 경우는 2가지 이므로
+        // 하나의 기준을 잡고 선을 표현해야 정확하게 사각형인지 아닌지 판단할 수 있기 때문에 선을 정렬시킴.
         private boolean checkExistedSquare(String str){
             if(list.size() != 0){
                 for(String square: list){
@@ -424,87 +463,9 @@ public class Server extends JFrame{
             }
             else return true;
         }
-
-        private String checkSquare(Deque<String> deque) {
-            // 사각형을 이루는 선을 확인
-            int count = 0;
-            for (String lineData1 : deque) {
-                System.out.println(lineData1);
-                String[] points1 = lineData1.split(",");
-                int x1a = Integer.parseInt(points1[0]);
-                int y1a = Integer.parseInt(points1[1]);
-                int x2a = Integer.parseInt(points1[2]);
-                int y2a = Integer.parseInt(points1[3]);
-
-                if(y1a == y2a){
-                    String s = sortLine(x1a,y1a,x2a,y2a);
-                    String s2 = sortLine(x1a,y1a,x1a,y1a+1);
-                    String s3 = sortLine(x2a,y2a,x2a,y1a+1);
-                    String s4 = sortLine(x1a,y1a+1,x2a,y1a+1);
-
-                    for (String lineData2 : deque) {
-                        if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
-
-                        String[] points2 = lineData2.split(",");
-                        int x1b = Integer.parseInt(points2[0]);
-                        int y1b = Integer.parseInt(points2[1]);
-                        int x2b = Integer.parseInt(points2[2]);
-                        int y2b = Integer.parseInt(points2[3]);
-                        String c = sortLine(x1b,y1b,x2b,y2b);
-                        //System.out.println("정렬된 :"+c);
-                        if(c.equals(s2)||c.equals(s3)||c.equals(s4)){
-                            count++;
-                        }
-                    }
-                    System.out.println(count);
-                    if(count == 3){
-                        //System.out.println(x1a+","+y1a+","+(x1a+1)+","+y2a);
-                        if(!checkExistedSquare(x1a+","+y1a+","+(x2a)+","+(y1a+1))){
-                            count = 0;
-                            continue;
-                        }
-                        System.out.println("발견");
-                        list.add(x1a+","+y1a+","+(x2a)+","+(y1a+1));
-                        return x1a+","+y1a+","+(x2a)+","+(y1a+1);
-                    }
-                    else count = 0;
-                }
-                else{
-                    String s = sortLine(x1a,y1a,x2a,y2a);
-                    String s2 = sortLine(x1a,y1a,x1a+1,y1a);
-                    String s3 = sortLine(x2a,y2a,x2a+1,y2a);
-                    String s4 = sortLine(x1a+1,y1a,x2a+1,y2a);
-
-                    for (String lineData2 : deque) {
-                        if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
-
-                        String[] points2 = lineData2.split(",");
-                        int x1b = Integer.parseInt(points2[0]);
-                        int y1b = Integer.parseInt(points2[1]);
-                        int x2b = Integer.parseInt(points2[2]);
-                        int y2b = Integer.parseInt(points2[3]);
-                        String c = sortLine(x1b,y1b,x2b,y2b);
-                        //System.out.println("정렬된 :"+c);
-                        if(c.equals(s2)||c.equals(s3)||c.equals(s4)){
-                            count++;
-                        }
-                    }
-                    System.out.println(count);
-                    if(count == 3){
-                        //System.out.println(x1a+","+y1a+","+(x1a+1)+","+y2a);
-
-                        if(!checkExistedSquare(x1a+","+y1a+","+(x1a+1)+","+y2a)){
-                            count = 0;
-                            continue;
-                        }
-                        System.out.println("발견");
-                        list.add(x1a+","+y1a+","+(x1a+1)+","+y2a);
-                        return x1a+","+y1a+","+(x1a+1)+","+y2a;
-                    }
-                    else count = 0;
-                }
-            }
-            return "";
-        }
+        // 이번턴에 선을 추가해서 새롭게 만들 수 있는 사각형이 있는지 판단한다.
+        // 선을 버리지 않고 모아두기 때문에 이미 만든 사각형을 또 찾게 될 수 있다.
+        // 따라서 이미 만든 사각형의 정보가 담긴 list와 비교 검사하여 checkSquare애서는 새로 찾은 사각형만 반환하도록 한다.
     }
+    //DequeLogger는 추가된 선들이 사각형을 형성하는지 체크한다.
 }

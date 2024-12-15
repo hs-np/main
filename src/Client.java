@@ -190,8 +190,9 @@ public class Client extends JFrame {
     }
 
     public LoginData makeloginData(String str){
-        userId = login.getText();
         String idData = login.getText();
+        userId = idData;
+        System.out.println("195userId는"+userId);
         String pwData = password.getText();
         LoginData loginData = new LoginData(idData, pwData, str);
         return loginData;
@@ -237,56 +238,6 @@ public class Client extends JFrame {
             //checkSquare(); // 선들이 사각형을 이루는지 확인
         //}
     }
-    private void checkSquare() {
-        // 사각형을 이루는 선을 확인
-        for (String lineData1 : matchingLine) {
-            System.out.println(lineData1);
-            String[] points1 = lineData1.split(",");
-            int x1a = Integer.parseInt(points1[0]);
-            int y1a = Integer.parseInt(points1[1]);
-            int x2a = Integer.parseInt(points1[2]);
-            int y2a = Integer.parseInt(points1[3]);
-
-            for (String lineData2 : matchingLine) {
-                if (lineData1.equals(lineData2)) continue; // 동일한 선은 제외
-
-                String[] points2 = lineData2.split(",");
-                int x1b = Integer.parseInt(points2[0]);
-                int y1b = Integer.parseInt(points2[1]);
-                int x2b = Integer.parseInt(points2[2]);
-                int y2b = Integer.parseInt(points2[3]);
-
-                // 두 선이 교차점이 있는지 체크
-                if (isIntersecting(x1a, y1a, x2a, y2a, x1b, y1b, x2b, y2b)) {
-                    // 교차점이 있다면, 해당 교차점으로 사각형을 구성할 수 있는지 확인
-                    if (formsRectangle(x1a, y1a, x2a, y2a, x1b, y1b, x2b, y2b)) {
-                        System.out.println("사각형 발견!");
-                        // 사각형을 발견하면 추가 동작을 처리할 수 있음
-                    }
-                }
-            }
-        }
-    }
-
-    private boolean isIntersecting(int x1a, int y1a, int x2a, int y2a, int x1b, int y1b, int x2b, int y2b) {
-        // 두 선이 교차하는지 확인하는 방법 (수평, 수직선만 처리)
-        // x1a, y1a, x2a, y2a 는 첫 번째 선의 두 점
-        // x1b, y1b, x2b, y2b 는 두 번째 선의 두 점
-
-        // 교차 조건을 간단히 수평선과 수직선의 교차로 가정
-        return ((x1a == x2a && y1b == y2b && y1a <= y2b && y2a >= y1b) || (y1a == y2a && x1b == x2b && x1a <= x2b && x2a >= x1b));
-    }
-
-    private boolean formsRectangle(int x1a, int y1a, int x2a, int y2a, int x1b, int y1b, int x2b, int y2b) {
-        // 두 선이 사각형을 이루는지 확인
-        // 간단히 말해서, 두 선이 교차하고 사각형의 네 점이 모두 존재하는지 확인
-        // 이 경우 사각형의 나머지 두 선을 구성할 수 있으면 true 반환
-
-        // 조건을 좀 더 세밀하게 다루어야 함 (다양한 방향의 선들을 체크)
-
-        // 예시로 두 선이 수평/수직이 되는 경우에 사각형을 이루는지 확인
-        return (Math.abs(x1a - x1b) == 1 && Math.abs(y1a - y1b) == 1);
-    }
 
     public void startConnect() throws IOException {
         String msg;
@@ -298,12 +249,24 @@ public class Client extends JFrame {
             else if(msg.equals("게임종료")){
                 endGame();
             }
+            else if(msg.contains("턴입니다")){
+                String nickname = msg.replaceAll("턴입니다.$", "");
+                System.out.println(nickname);
+                if(userId.equals(nickname)){
+                    turn.setEnabled(true);
+                }
+                else{
+                    turn.setEnabled(false);
+                }
+            }
             serverChat.append(msg+"\n");
             if(msg.contains(":")){
                 String[] lineData = msg.split(":");
                 if(lineData.length == 3){
                     System.out.println(lineData[0]+","+lineData[1]+","+lineData[2]);
+                    System.out.println("267userId는"+userId);
                     if(lineData[0].equals(userId)){
+                        System.out.println("true");
                         myRect.add(lineData[2]);
                     }
                     else matchingRect.add(lineData[2]);
@@ -313,7 +276,6 @@ public class Client extends JFrame {
                 System.out.println(lineData[0]+","+lineData[1]);
                 if(lineData[0].equals(userId)){
                     myLine.add(lineData[1]);
-                    System.out.println("1");
                 }
                 else {
                     handleTurnEnd(lineData[1]);
@@ -508,7 +470,9 @@ public class Client extends JFrame {
         private void drawRectanglesFromMyRect(Graphics g) {
             g.setColor(Color.GREEN); // 사각형의 색상을 설정
 
+
             for (String rectData : myRect) {
+                System.out.println(userId+"myRect: "+rectData);
                 String[] points = rectData.split(",");
                 if (points.length == 4) {
                     int x1 = Integer.parseInt(points[0]);
@@ -533,6 +497,7 @@ public class Client extends JFrame {
             g.setColor(Color.RED); // 사각형의 색상을 설정
 
             for (String rectData : matchingRect) {
+                System.out.println(userId+"matchingRect: "+rectData);
                 String[] points = rectData.split(",");
                 if (points.length == 4) {
                     int x1 = Integer.parseInt(points[0]);
@@ -555,7 +520,7 @@ public class Client extends JFrame {
 
         // myLine 큐에서 선 정보를 읽어와 그리기
         private void drawLinesFromMyLine(Graphics g) {
-            g.setColor(Color.BLACK); // myLine의 선은 빨간색으로 설정
+            g.setColor(Color.GREEN); // myLine의 선은 빨간색으로 설정
             System.out.println(login.getText()+"가 그린 선: "+ myLine);
             for (String lineData : myLine) {
                 String[] points = lineData.split(",");
@@ -577,7 +542,6 @@ public class Client extends JFrame {
 
         private void drawLinesFromMatchingLine(Graphics g) {
             g.setColor(Color.RED); // myLine의 선은 빨간색으로 설정
-            System.out.println(login.getText()+"가 그린 선: "+ myLine);
             for (String lineData : matchingLine) {
                 String[] points = lineData.split(",");
                 if (points.length == 4) {
@@ -643,11 +607,6 @@ public class Client extends JFrame {
             drawLinesFromMatchingLine(g);
             drawRectanglesFromMyRect(g);
             drawRectanglesFromMatchingRect(g);
-
-            //            repaint(); // GUI 갱신
-//            SwingUtilities.invokeLater(() -> {
-//                repaint(); // GUI 갱신
-//            });
         }
 
         private void handleMouseClick(Point clickPoint) {
