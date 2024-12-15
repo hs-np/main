@@ -60,6 +60,7 @@ public class Client extends JFrame {
 
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setVisible(true);
+        soundEffect("src/Music/mainMusic.mp3", true);
     }
     public void startGUI(){
         this.add(new JScrollPane(serverChat));
@@ -125,6 +126,7 @@ public class Client extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try{
+                    soundEffect("src/Music/clickSound.mp3", false);
                     LoginData loginData = makeloginData("로그인");
                     sendLoginData(loginData);
                     String msg = sendResult();
@@ -140,6 +142,7 @@ public class Client extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try{
+                    soundEffect("src/Music/clickSound.mp3", false);
                     LoginData loginData = makeloginData("회원가입");
                     sendLoginData(loginData);
                     String msg = sendResult();
@@ -157,12 +160,14 @@ public class Client extends JFrame {
         matching.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                soundEffect("src/Music/clickSound.mp3", false);
                 requestMatching();
             }
         });
         exit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                soundEffect("src/Music/clickSound.mp3", false);
                 endGame();
             }
         });
@@ -173,6 +178,7 @@ public class Client extends JFrame {
                 try{
                     bw.write(msg);
                     bw.flush();
+                    soundEffect("src/Music/clickSound.mp3", false);
                 }
                 catch(IOException e1){
                     System.out.println("currentLine 오류");
@@ -250,6 +256,7 @@ public class Client extends JFrame {
                 System.out.println(nickname);
                 if(userId.equals(nickname)){
                     turn.setEnabled(true);
+                    soundEffect("src/Music/trunStart.mp3", false);
                 }
                 else{
                     turn.setEnabled(false);
@@ -278,6 +285,10 @@ public class Client extends JFrame {
                 }
             }
         }
+    }
+    public void soundEffect(String mp3Path, boolean loop){
+        Mp3PlayerThread mp3Player = new Mp3PlayerThread(mp3Path, loop);
+        mp3Player.start();
     }
 
     interface ConnectState {
