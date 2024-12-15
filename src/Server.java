@@ -232,48 +232,51 @@ public class Server extends JFrame{
                     handleGameEnd();
                     break;
                 case "재시작":
-                    for(int i = 0;i<gameRoom.size();i++){
-                        if(gameRoom.get(i)[0] == this){
-                            if(gameRoom.get(i)[0].loginId == player1Name){
-                                player1reStart = true;
-                                if(player2reStart == false)gameRoom.get(i)[1].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
-                                else broadCast("재시작수락");
-                            }
-                            else if(gameRoom.get(i)[0].loginId == player2Name){
-                                player2reStart = true;
-                                if(player1reStart == false)gameRoom.get(i)[1].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
-                                else broadCast("재시작수락");
-                            }
-                        }
-                        else if(gameRoom.get(i)[1] == this){
-                            if(gameRoom.get(i)[1].loginId == player1Name){
-                                player1reStart = true;
-                                if(player2reStart == false)gameRoom.get(i)[0].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
-                                else broadCast("재시작수락");
-                            }
-                            else if(gameRoom.get(i)[1].loginId == player2Name){
-                                player2reStart = true;
-                                if(player1reStart == false)gameRoom.get(i)[0].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
-                                else broadCast("재시작수락");
-                            }
-                        }
-                        if(player1reStart == true && player2reStart == true){
-                            rectPoint ="";
-                            list.clear();
-                            player1.clear();
-                            player2.clear();
-                            player1RectNum = 0;
-                            player2RectNum = 0;
-                            player1reStart = false;
-                            player2reStart = false;
-                        }
-                    }
+                    handleRestart();
                     break;
                 default:
                     broadCast(msg);
                     handleGameTurn(msg);
                     break;
                     //게임진행
+            }
+        }
+        private void handleRestart(){
+            for(int i = 0;i<gameRoom.size();i++){
+                if(gameRoom.get(i)[0] == this){
+                    if(gameRoom.get(i)[0].loginId == player1Name){
+                        player1reStart = true;
+                        if(player2reStart == false)gameRoom.get(i)[1].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
+                        else broadCast("재시작수락");
+                    }
+                    else if(gameRoom.get(i)[0].loginId == player2Name){
+                        player2reStart = true;
+                        if(player1reStart == false)gameRoom.get(i)[1].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
+                        else broadCast("재시작수락");
+                    }
+                }
+                else if(gameRoom.get(i)[1] == this){
+                    if(gameRoom.get(i)[1].loginId == player1Name){
+                        player1reStart = true;
+                        if(player2reStart == false)gameRoom.get(i)[0].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
+                        else broadCast("재시작수락");
+                    }
+                    else if(gameRoom.get(i)[1].loginId == player2Name){
+                        player2reStart = true;
+                        if(player1reStart == false)gameRoom.get(i)[0].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
+                        else broadCast("재시작수락");
+                    }
+                }
+                if(player1reStart == true && player2reStart == true){
+                    rectPoint ="";
+                    list.clear();
+                    player1.clear();
+                    player2.clear();
+                    player1RectNum = 0;
+                    player2RectNum = 0;
+                    player1reStart = false;
+                    player2reStart = false;
+                }
             }
         }
         // 매칭 기능 및 게임시작 기능
