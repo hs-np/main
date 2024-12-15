@@ -45,6 +45,8 @@ public class Client extends JFrame {
     private JButton backTurn = new JButton("무르기");
     private JButton turn = new JButton("턴종료");
     private JButton exit = new JButton("나가기");
+    private JTextField addressField= new JTextField();
+    private JTextField portField= new JTextField();
 
     private ConnectState connectState = new NotConnected();
     //초기 상태는 매칭전 상태.
@@ -87,6 +89,28 @@ public class Client extends JFrame {
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         controlPanel.setVisible(false);
     }
+    private static void addPlaceholder(JTextField textField, String placeholder) {
+        textField.setText(placeholder);
+        textField.setForeground(Color.GRAY);
+
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textField.getText().equals(placeholder)) {
+                    textField.setText("");
+                    textField.setForeground(Color.BLACK);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textField.getText().isEmpty()) {
+                    textField.setText(placeholder);
+                    textField.setForeground(Color.GRAY);
+                }
+            }
+        });
+    }
     public JPanel paintPanel(){
         JPanel paintPanel = new JPanel();
         paintPanel.setLayout(null);
@@ -95,11 +119,17 @@ public class Client extends JFrame {
         signinButton.setBounds(540, 300, 70, 25);
         signupButton.setBounds(540, 325, 70, 25);
         titleLabel.setBounds(43, 100, 800, 105);
+        addressField.setBounds(400, 350, 105, 25);
+        portField.setBounds(505, 350, 105, 25);
+        addPlaceholder(addressField,address);
+        addPlaceholder(portField,port);
         paintPanel.add(login);
         paintPanel.add(password);
         paintPanel.add(signinButton);
         paintPanel.add(signupButton);
         paintPanel.add(titleLabel);
+        paintPanel.add(addressField);
+        paintPanel.add(portField);
 
         login.addFocusListener(new FocusAdapter() {
             @Override
@@ -256,6 +286,8 @@ public class Client extends JFrame {
         return loginData;
     }
     public void sendLoginData(LoginData loginData) throws IOException{
+        String address = addressField.getText();
+        String port = portField.getText();
         socket = new Socket(address, Integer.parseInt(port));
         ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
         br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -449,6 +481,8 @@ public class Client extends JFrame {
         password.setVisible(false);
         signinButton.setVisible(false);
         signupButton.setVisible(false);
+        addressField.setVisible(false);
+        portField.setVisible(false);
         controlPanel.setVisible(true);
         acceptThread = new Thread(new Runnable() {
             @Override
