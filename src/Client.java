@@ -334,6 +334,7 @@ public class Client extends JFrame {
             }
             //매칭 방에 사람이 두명 이상 존재하면 바로 팀 매칭이 됨.
             else if(msg.equals("게임종료")){
+                //restart();
                 endGame();
             }
             else if(msg.equals("재시작수락")){
@@ -435,7 +436,7 @@ public class Client extends JFrame {
         @Override
         public void endGame(Client client) {
             try{
-                inGameToNotConnected();
+                inGameToEndGame();
             }
             catch(IOException e){
                 System.out.println(e.getMessage());
@@ -461,6 +462,35 @@ public class Client extends JFrame {
         }
     }
     //게임 중인 상태.
+    class EndGame implements ConnectState {
+
+        @Override
+        public void endGame(Client client) {}
+
+        @Override
+        public void requestMatching(Client client) {
+            currentLine = null;
+            myLine.clear();
+            matchingLine.clear();
+            myRect.clear();
+            matchingRect.clear();
+            repaint();
+            serverChat.append("매칭을 시작합니다.");
+            try{
+                endGameToRequestMatching();
+            }
+            catch(IOException e){
+
+            }
+        }
+        @Override
+        public void startGame(Client client) {}
+        @Override
+        public void login(Client client) {}
+
+        @Override
+        public void restart(Client client) {}
+    }
 
     public void requestMatching(){connectState.requestMatching(this);}
     public void startGame(){connectState.startGame(this);}
@@ -476,6 +506,29 @@ public class Client extends JFrame {
         new Client(address, port);
     }
 
+    public void endGameToRequestMatching() throws IOException{
+        bw.write("매칭\n");
+        bw.flush();
+        serverChat.append("클라: 매칭 중...\n");
+        setConnectState(new Matching());
+
+        JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
+        this.getContentPane().removeAll();
+        this.getContentPane().add(matchingPanel, BorderLayout.CENTER);
+        this.getContentPane().add(serverChat, BorderLayout.EAST);
+        this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
+        this.revalidate();
+        this.repaint();
+    }
+    public void inGameToEndGame() throws IOException{
+        serverChat.append("게임이 종료되었습니다.");
+        setConnectState(new EndGame());
+        matching.setEnabled(true);
+        backTurn.setEnabled(false);
+        turn.setEnabled(false);
+        bw.write("게임종료\n");
+        bw.flush();
+    }
     public void loginSucessConnnect(){
         login.setVisible(false);
         password.setVisible(false);
@@ -541,15 +594,6 @@ public class Client extends JFrame {
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
         this.repaint();
-    }
-    public void inGameToNotConnected() throws IOException{
-        serverChat.append("게임이 종료되었습니다.");
-        setConnectState(new NotConnected());
-        matching.setEnabled(true);
-        backTurn.setEnabled(false);
-        turn.setEnabled(false);
-        bw.write("게임종료\n");
-        bw.flush();
     }
     //상태에 따른 로직 메소드
 

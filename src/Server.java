@@ -246,8 +246,14 @@ public class Server extends JFrame{
                                 } else {
                                     player2RectNum++;
                                 }
-                                if (player1RectNum == 1 || player2RectNum == 1) {
+                                if (player1RectNum == 1 || player2RectNum == 1 || player2RectNum + player1RectNum == 1) {
                                     broadCast("게임종료");
+                                    if (player1RectNum > player2RectNum) {
+                                        broadCast(player1Name+"님의 게임승리");
+                                    } else {
+                                        broadCast(player2Name+"님의 게임승리");
+                                    }
+                                    reset();
                                 }
                             }
                     });
@@ -310,17 +316,20 @@ public class Server extends JFrame{
                     }
                 }
                 if(player1reStart == true && player2reStart == true){
-                    rectPoint ="";
-                    list.clear();
-                    player1.clear();
-                    player2.clear();
-                    player1RectNum = 0;
-                    player2RectNum = 0;
-                    player1reStart = false;
-                    player2reStart = false;
+                    reset();
                 }
             }
         }
+        private void reset(){
+            rectPoint ="";
+            list.clear();
+            player1.clear();
+            player2.clear();
+            player1RectNum = 0;
+            player2RectNum = 0;
+            player1reStart = false;
+            player2reStart = false;
+        };
         // 매칭 기능 및 게임시작 기능
         private void handleMatching() {
             if (waitingRoom.isEmpty()) {
