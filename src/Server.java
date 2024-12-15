@@ -236,37 +236,38 @@ public class Server extends JFrame{
                         if(gameRoom.get(i)[0] == this){
                             if(gameRoom.get(i)[0].loginId == player1Name){
                                 player1reStart = true;
-                                if(player2reStart == false)gameRoom.get(i)[1].sendMessage("재요청버튼을 누르면 다시 시작합니다.");
-                                else broadCast("재요청을 수락했습니다.");
+                                if(player2reStart == false)gameRoom.get(i)[1].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
+                                else broadCast("재시작수락");
                             }
                             else if(gameRoom.get(i)[0].loginId == player2Name){
                                 player2reStart = true;
-                                if(player1reStart == false)gameRoom.get(i)[1].sendMessage("재요청버튼을 누르면 다시 시작합니다.");
-                                else broadCast("재요청을 수락했습니다.");
+                                if(player1reStart == false)gameRoom.get(i)[1].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
+                                else broadCast("재시작수락");
                             }
                         }
                         else if(gameRoom.get(i)[1] == this){
                             if(gameRoom.get(i)[1].loginId == player1Name){
                                 player1reStart = true;
-                                if(player2reStart == false)gameRoom.get(i)[0].sendMessage("재요청버튼을 누르면 다시 시작합니다.");
-                                else broadCast("재요청을 수락했습니다.");
+                                if(player2reStart == false)gameRoom.get(i)[0].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
+                                else broadCast("재시작수락");
                             }
                             else if(gameRoom.get(i)[1].loginId == player2Name){
                                 player2reStart = true;
-                                if(player1reStart == false)gameRoom.get(i)[0].sendMessage("재요청버튼을 누르면 다시 시작합니다.");
-                                else broadCast("재요청을 수락했습니다.");
+                                if(player1reStart == false)gameRoom.get(i)[0].sendMessage("재시작버튼을 누르면 다시 시작합니다.");
+                                else broadCast("재시작수락");
                             }
                         }
                         if(player1reStart == true && player2reStart == true){
+                            rectPoint ="";
+                            list.clear();
+                            player1.clear();
+                            player2.clear();
+                            player1RectNum = 0;
+                            player2RectNum = 0;
                             player1reStart = false;
                             player2reStart = false;
                         }
                     }
-//                    try{
-//                    }
-//                    catch(IOException e){
-//
-//                    }
                     break;
                 default:
                     broadCast(msg);
@@ -354,12 +355,7 @@ public class Server extends JFrame{
                 chatSender.flush();
             }
             catch(IOException e){
-                //try{
                     System.out.println("326SendMessage");
-               // }
-//                catch(IOException e1){
-//
-//                }
             }
         }
     }
@@ -386,6 +382,9 @@ public class Server extends JFrame{
             for (DequeObserver observer : observers) {
                 observer.onElementAdded(element, deque);
             }
+        }
+        public void clear(){
+            deque.clear();
         }
     }
     //ObservableDeque는 플레이어가 추가한 선들을 저장하는 기능을 추가하고 DequeLogger를 자동 호출한다.

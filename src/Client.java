@@ -189,6 +189,10 @@ public class Client extends JFrame {
             boolean sameLine = false;
             @Override
             public void actionPerformed(ActionEvent e) {
+                if(currentLine == null){
+                    serverChat.append("두 점을 선택해 선을 만들어주세요.");
+                    return;
+                }
                 String currentLineString = comparisonLine(currentLine.p1.x + ","+currentLine.p1.y + ","+currentLine.p2.x + ","+ currentLine.p2.y);
                 serverChat.append("currentLineString: "+currentLineString+"\n");
                 for(String line: myLine){
@@ -299,6 +303,15 @@ public class Client extends JFrame {
             //매칭 방에 사람이 두명 이상 존재하면 바로 팀 매칭이 됨.
             else if(msg.equals("게임종료")){
                 endGame();
+            }
+            else if(msg.equals("재시작수락")){
+                currentLine = null;
+                myLine.clear();
+                matchingLine.clear();
+                myRect.clear();
+                matchingRect.clear();
+                repaint();
+                serverChat.append("게임이 재시작되었습니다.");
             }
             else if(msg.contains("턴입니다")){
                 String nickname = msg.replaceAll("턴입니다.$", "");
