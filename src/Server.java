@@ -2,7 +2,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
@@ -44,10 +47,14 @@ public class Server extends JFrame{
     private boolean player1reStart = false;
     private boolean player2reStart = false;
 
+    private JTextField addressField= new JTextField();
+    private JTextField portField= new JTextField();
+
     public Server(String address, String port){
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setBounds(800, 300, 500, 500);
         this.setTitle("DotAndBoxServer");
+        this.address = address;
         this.port = port;
         player1.addObserver(logger);
         player2.addObserver(logger);
@@ -56,7 +63,37 @@ public class Server extends JFrame{
     }
     public void ServerGUI(){
         this.getContentPane().add(createDisplayPanel(), BorderLayout.CENTER);
-        this.getContentPane().add(createControlPane(), BorderLayout.SOUTH);
+        JPanel jPanel = new JPanel(new GridLayout(0,1));
+        JPanel addressPanel = new JPanel(new GridLayout(1,0));
+        addPlaceholder(addressField, address);
+        addPlaceholder(portField, port);
+        addressPanel.add(addressField);
+        addressPanel.add(portField);
+        jPanel.add(addressPanel);
+        jPanel.add(createControlPane());
+        this.getContentPane().add(jPanel, BorderLayout.SOUTH);
+    }
+    private static void addPlaceholder(JTextField textField, String placeholder) {
+        textField.setText(placeholder);
+        textField.setForeground(Color.GRAY);
+
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textField.getText().equals(placeholder)) {
+                    textField.setText("");
+                    textField.setForeground(Color.BLACK);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textField.getText().isEmpty()) {
+                    textField.setText(placeholder);
+                    textField.setForeground(Color.GRAY);
+                }
+            }
+        });
     }
     public JPanel createDisplayPanel(){
 
@@ -100,7 +137,12 @@ public class Server extends JFrame{
         return controlPanel;
     }
     public void startServer() {
-        try (ServerSocket serverSocket = new ServerSocket(12345)) {
+        String address = addressField.getText();
+        String port = portField.getText();
+        System.out.println(address+","+port);
+        try (ServerSocket serverSocket = new ServerSocket()) {
+            serverSocket.bind(new InetSocketAddress(address, Integer.parseInt(port))); // IP와 포트 바인딩
+            System.out.println("서버 실행 중: " + address + ":" + port);
             server_display.append("서버가 시작되었습니다\n");
 
             while (true) {
@@ -365,7 +407,7 @@ public class Server extends JFrame{
 
     public static void main(String[] args){
         String address = "localhost";
-        String port = "1234";
+        String port = "12345";
         new Server(address , port);
     }
 

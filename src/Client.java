@@ -60,7 +60,7 @@ public class Client extends JFrame {
         this.address = address;
         this.port = port;
         this.setBounds(0, 0, 1000, 550);
-        this.setTitle("Client GUI");
+        this.setTitle("DotAndBox Client");
         startGUI();
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setVisible(true);
