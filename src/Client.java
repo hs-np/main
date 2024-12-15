@@ -77,12 +77,7 @@ public class Client extends JFrame {
         serverChat.setLineWrap(true);  // 줄 바꿈 활성화
         serverChat.setWrapStyleWord(true); // 단어 단위로 줄 바꿈
         // serverChat을 JScrollPane으로 감싸기
-        JScrollPane scrollPane = new JScrollPane(serverChat);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);  // 세로 스크롤바 항상 표시
-
-        // scrollPane을 EAST에 추가
-        this.getContentPane().add(scrollPane, BorderLayout.EAST);
-        //this.getContentPane().add(serverChat, BorderLayout.EAST);
+        this.getContentPane().add(serverChat, BorderLayout.EAST);
         controlPanel = controlPanel();
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         controlPanel.setVisible(false);
@@ -94,7 +89,7 @@ public class Client extends JFrame {
         password.setBounds(400, 325, 140, 25);
         signinButton.setBounds(540, 300, 70, 25);
         signupButton.setBounds(540, 325, 70, 25);
-        titleLabel.setBounds(43, 100, 800, 105);
+        titleLabel.setBounds(33, 100, 800, 105);
         paintPanel.add(login);
         paintPanel.add(password);
         paintPanel.add(signinButton);
@@ -158,6 +153,10 @@ public class Client extends JFrame {
                 try{
                     soundEffect("src/Music/clickSound.mp3", false);
                     LoginData loginData = makeloginData("회원가입");
+                    if(loginData.getId().equals("") || loginData.getPw().equals("")){
+                        serverChat.append("아이디와 비밀번호 모두 입력해주세요.");
+                        return;
+                    }
                     sendLoginData(loginData);
                     String msg = sendResult();
                     checkSignUp(paintPanel,msg);
@@ -189,24 +188,25 @@ public class Client extends JFrame {
             boolean sameLine = false;
             @Override
             public void actionPerformed(ActionEvent e) {
+                if(currentLine == null){
+                    serverChat.append("두 점을 눌러 선을 만들어주세요.");
+                    return;
+                }
                 String currentLineString = comparisonLine(currentLine.p1.x + ","+currentLine.p1.y + ","+currentLine.p2.x + ","+ currentLine.p2.y);
-                serverChat.append("currentLineString: "+currentLineString+"\n");
                 for(String line: myLine){
                     String sortLine = comparisonLine(line);
-                    serverChat.append("myline: "+sortLine+"\n");
                     if(currentLineString.equals(sortLine)){
                         sameLine = true;
                     }
                 }
                 for(String line: matchingLine){
                     String sortLine = comparisonLine(line);
-                    serverChat.append("matchingLine: "+sortLine+"\n");
                     if(currentLineString.equals(sortLine)){
                         sameLine = true;
                     }
                 }
                 if(sameLine){
-                    serverChat.append("이미 선택한 선입니다.");
+                    serverChat.append("이미 선택된 선입니다.");
                     sameLine = false;
                     return;
                 }
@@ -298,7 +298,6 @@ public class Client extends JFrame {
                     turn.setEnabled(false);
                 }
             }
-            //serverChat.append(msg+"\n");
             if(msg.contains(":")){
                 String[] lineData = msg.split(":");
                 if(lineData.length == 3){
@@ -433,9 +432,11 @@ public class Client extends JFrame {
         serverChat.append("클라: 매칭 중...\n");
         setConnectState(new Matching());
 
-        JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
+        JPanel praticeGamePanel = new PraticeGamePanel(4); // 4x4 점
         this.getContentPane().removeAll();
-        this.getContentPane().add(matchingPanel, BorderLayout.CENTER);
+        JPanel praticePanle = new JPanel();
+        praticePanle.add(praticeGamePanel, BorderLayout.CENTER);
+        this.getContentPane().add(praticePanle, BorderLayout.CENTER);
         this.getContentPane().add(serverChat, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
