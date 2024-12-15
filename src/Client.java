@@ -305,13 +305,7 @@ public class Client extends JFrame {
                 endGame();
             }
             else if(msg.equals("재시작수락")){
-                currentLine = null;
-                myLine.clear();
-                matchingLine.clear();
-                myRect.clear();
-                matchingRect.clear();
-                repaint();
-                serverChat.append("게임이 재시작되었습니다.");
+                restart();
             }
             else if(msg.contains("턴입니다")){
                 String nickname = msg.replaceAll("턴입니다.$", "");
@@ -358,6 +352,7 @@ public class Client extends JFrame {
         public void requestMatching(Client client);
         public void startGame(Client client);
         public void login(Client client) throws IOException;
+        public void restart(Client client);
     }
     //연결상태에 따라 진행. 게임 진행을 어느 상태인지에 따라 관리함. -> 상태에 따라 동일한 버튼 클릭도 다른 반응이 나오기 때문.
     // ex) 매칭 전 매칭 버튼, 게임 중 매칭 버튼 클릭은 다른 반응을 보여야 함.
@@ -369,6 +364,11 @@ public class Client extends JFrame {
         }
         @Override
         public void login(Client client){loginSucessConnnect();}
+
+        @Override
+        public void restart(Client client) {
+
+        }
 
         @Override
         public void startGame(Client client) {serverChat.append("매칭을 먼저 해야합니다.\n");}
@@ -388,6 +388,12 @@ public class Client extends JFrame {
 
         @Override
         public void login(Client client) {}
+
+        @Override
+        public void restart(Client client) {
+
+        }
+
         @Override
         public void endGame(Client client) {}
     }
@@ -410,18 +416,24 @@ public class Client extends JFrame {
         public void startGame(Client client) {}
         @Override
         public void login(Client client) {}
+
+        @Override
+        public void restart(Client client) {
+            currentLine = null;
+            myLine.clear();
+            matchingLine.clear();
+            myRect.clear();
+            matchingRect.clear();
+            repaint();
+            serverChat.append("게임이 재시작되었습니다.");
+        }
     }
     //게임 중인 상태.
 
-    public void requestMatching(){
-        connectState.requestMatching(this);
-    }
-    public void startGame(){
-        connectState.startGame(this);
-    }
-    public void endGame(){
-        connectState.endGame(this);
-    }
+    public void requestMatching(){connectState.requestMatching(this);}
+    public void startGame(){connectState.startGame(this);}
+    public void endGame(){connectState.endGame(this);}
+    public void restart(){connectState.restart(this);}
     public void login() throws IOException{connectState.login(this);}
     //통신을 통한 상태변경 메소드
 
