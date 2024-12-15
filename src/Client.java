@@ -16,7 +16,12 @@ public class Client extends JFrame {
 
     private String address;
     private String port;
-    private JLabel title= new JLabel("제목");
+
+    // 이미지 로드
+    ImageIcon titleIcon = new ImageIcon("src/Image/title.jpg");
+    Image scaledImage = titleIcon.getImage().getScaledInstance(800, 105, Image.SCALE_SMOOTH);
+    ImageIcon scaledTitleIcon = new ImageIcon(scaledImage);
+    JLabel titleLabel = new JLabel(scaledTitleIcon);
     private JTextField login= new JTextField();
     private JTextField password= new JTextField();
     private JButton signinButton = new JButton("로그인");
@@ -57,18 +62,27 @@ public class Client extends JFrame {
         this.setBounds(0, 0, 1000, 550);
         this.setTitle("Client GUI");
         startGUI();
-
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setVisible(true);
         soundEffect("src/Music/mainMusic.mp3", true);
+
     }
     public void startGUI(){
-        this.add(new JScrollPane(serverChat));
-
-        this.getContentPane().add(paintPanel(), BorderLayout.CENTER);
+        this.getContentPane().setBackground(Color.WHITE);
+        JPanel paintPanel = paintPanel();
+        paintPanel.setBackground(Color.WHITE);
+        this.getContentPane().add(paintPanel, BorderLayout.CENTER);
 
         serverChat = new JTextArea(20,10);
-        this.getContentPane().add(serverChat, BorderLayout.EAST);
+        serverChat.setLineWrap(true);  // 줄 바꿈 활성화
+        serverChat.setWrapStyleWord(true); // 단어 단위로 줄 바꿈
+        // serverChat을 JScrollPane으로 감싸기
+        JScrollPane scrollPane = new JScrollPane(serverChat);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);  // 세로 스크롤바 항상 표시
+
+        // scrollPane을 EAST에 추가
+        this.getContentPane().add(scrollPane, BorderLayout.EAST);
+        //this.getContentPane().add(serverChat, BorderLayout.EAST);
         controlPanel = controlPanel();
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         controlPanel.setVisible(false);
@@ -76,16 +90,16 @@ public class Client extends JFrame {
     public JPanel paintPanel(){
         JPanel paintPanel = new JPanel();
         paintPanel.setLayout(null);
-        title.setBounds(475, 100, 50, 50);
         login.setBounds(400, 300, 140, 25);
         password.setBounds(400, 325, 140, 25);
         signinButton.setBounds(540, 300, 70, 25);
         signupButton.setBounds(540, 325, 70, 25);
-        paintPanel.add(title);
+        titleLabel.setBounds(43, 100, 800, 105);
         paintPanel.add(login);
         paintPanel.add(password);
         paintPanel.add(signinButton);
         paintPanel.add(signupButton);
+        paintPanel.add(titleLabel);
 
         login.addFocusListener(new FocusAdapter() {
             @Override
@@ -172,9 +186,31 @@ public class Client extends JFrame {
             }
         });
         turn.addActionListener(new ActionListener() {
+            boolean sameLine = false;
             @Override
             public void actionPerformed(ActionEvent e) {
-                String msg =login.getText() + ":"+ currentLine.p1.x + ","+currentLine.p1.y + ","+currentLine.p2.x + ","+ currentLine.p2.y+"\n";
+                String currentLineString = comparisonLine(currentLine.p1.x + ","+currentLine.p1.y + ","+currentLine.p2.x + ","+ currentLine.p2.y);
+                serverChat.append("currentLineString: "+currentLineString+"\n");
+                for(String line: myLine){
+                    String sortLine = comparisonLine(line);
+                    serverChat.append("myline: "+sortLine+"\n");
+                    if(currentLineString.equals(sortLine)){
+                        sameLine = true;
+                    }
+                }
+                for(String line: matchingLine){
+                    String sortLine = comparisonLine(line);
+                    serverChat.append("matchingLine: "+sortLine+"\n");
+                    if(currentLineString.equals(sortLine)){
+                        sameLine = true;
+                    }
+                }
+                if(sameLine){
+                    serverChat.append("이미 선택한 선입니다.");
+                    sameLine = false;
+                    return;
+                }
+                String msg =userId + ":"+currentLineString+"\n";
                 try{
                     bw.write(msg);
                     bw.flush();
@@ -256,13 +292,13 @@ public class Client extends JFrame {
                 System.out.println(nickname);
                 if(userId.equals(nickname)){
                     turn.setEnabled(true);
-                    soundEffect("src/Music/trunStart.mp3", false);
+                    soundEffect("src/Music/turnStart.mp3", false);
                 }
                 else{
                     turn.setEnabled(false);
                 }
             }
-            serverChat.append(msg+"\n");
+            //serverChat.append(msg+"\n");
             if(msg.contains(":")){
                 String[] lineData = msg.split(":");
                 if(lineData.length == 3){
@@ -371,7 +407,6 @@ public class Client extends JFrame {
     }
 
     public void loginSucessConnnect(){
-        title.setVisible(false);
         login.setVisible(false);
         password.setVisible(false);
         signinButton.setVisible(false);
@@ -424,7 +459,13 @@ public class Client extends JFrame {
         JPanel gamePanel = new DotAndBoxGamePanel(4); // 4x4 점
         this.getContentPane().removeAll();
         this.getContentPane().add(gamePanel, BorderLayout.CENTER);
-        this.getContentPane().add(serverChat, BorderLayout.EAST);
+        serverChat = new JTextArea(30,20);
+        serverChat.setLineWrap(true);  // 줄 바꿈 활성화
+        serverChat.setWrapStyleWord(true); // 단어 단위로 줄 바꿈
+        // serverChat을 JScrollPane으로 감싸기
+        JScrollPane scrollPane = new JScrollPane(serverChat);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);  // 세로 스크롤바 항상 표시
+        this.getContentPane().add(scrollPane, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
         this.repaint();
@@ -640,4 +681,28 @@ public class Client extends JFrame {
             }
         }
     }
+    private String comparisonLine(String lineData2){
+        String[] points2 = lineData2.split(",");
+        int x1b = Integer.parseInt(points2[0]);
+        int y1b = Integer.parseInt(points2[1]);
+        int x2b = Integer.parseInt(points2[2]);
+        int y2b = Integer.parseInt(points2[3]);
+        return sortLine(x1b,y1b,x2b,y2b);
+    }
+    //사각형을 만들기 위해 필요한 선과 비교하기 위해 sortLine를 호출하여 lineData2라는 선을 가공한다.
+    private String sortLine(int x1a,int y1a,int x2a,int y2a){
+        String s = x1a+","+y1a+","+x2a+","+y2a;
+
+        if(x1a > x2a){
+            s = x2a+","+y2a+","+x1a+","+y1a;
+        }
+        else if(x1a == x2a){
+            if(y1a > y2a){
+                s = x2a+","+y2a+","+x1a+","+y1a;
+            }
+        }
+        return s;
+    }
+    //선을 표현할 수 있는 경우는 2가지 이므로
+    // 하나의 기준을 잡고 선을 표현해야 정확하게 사각형인지 아닌지 판단할 수 있기 때문에 선을 정렬시킴.
 }
