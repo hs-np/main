@@ -169,7 +169,6 @@ public class Client extends JFrame {
         turn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                //System.out.println(currentLine.p1.x + " , "+currentLine.p1.y + " , "+currentLine.p2.x + " , "+ currentLine.p2.y);
                 String msg =login.getText() + ":"+ currentLine.p1.x + ","+currentLine.p1.y + ","+currentLine.p2.x + ","+ currentLine.p2.y+"\n";
                 try{
                     bw.write(msg);
@@ -233,10 +232,7 @@ public class Client extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 repaint(); // GUI 갱신
             });
-        //if (matchingLine.size() >= 4) { // 최소 4개의 선이 있어야 사각형을 찾을 수 있음
-        //    System.out.println("사각형검사");
-            //checkSquare(); // 선들이 사각형을 이루는지 확인
-        //}
+            //턴을 넘기면 선이 그려지게 함.
     }
 
     public void startConnect() throws IOException {
@@ -293,52 +289,34 @@ public class Client extends JFrame {
     //연결상태에 따라 진행. 게임 진행을 어느 상태인지에 따라 관리함. -> 상태에 따라 동일한 버튼 클릭도 다른 반응이 나오기 때문.
     // ex) 매칭 전 매칭 버튼, 게임 중 매칭 버튼 클릭은 다른 반응을 보여야 함.
     class NotConnected implements ConnectState {
-
-        @Override
-        public void endGame(Client client) {
-
-        }
         @Override
         public void requestMatching(Client client) {
-            try {
-                notConnectedToRequestMatching();
-            } catch (IOException e) {
-                serverChat.append("매칭 요청 중 오류가 발생했습니다.\n");
-            }
+            try {notConnectedToRequestMatching();
+            } catch (IOException e) {serverChat.append("매칭 요청 중 오류가 발생했습니다.\n");}
         }
         @Override
-        public void startGame(Client client) {
-            serverChat.append("매칭을 먼저 해야합니다.\n");
-        }
+        public void login(Client client){loginSucessConnnect();}
+
         @Override
-        public void login(Client client){
-            loginSucessConnnect();
-        }
+        public void startGame(Client client) {serverChat.append("매칭을 먼저 해야합니다.\n");}
+        @Override
+        public void endGame(Client client) {}
     }
     //매칭 전 상태
     class Matching implements ConnectState {
 
         @Override
-        public void endGame(Client client) {
-
-        }
-
-        @Override
         public void requestMatching(Client client) {
-            try{
-                requestMatchingToNotConnected();
-            }
+            try{requestMatchingToNotConnected();}
             catch(IOException e){System.out.println(e.getMessage());}
         }
-
         @Override
         public void startGame(Client client) {requestMatchingToInGame();}
 
         @Override
-        public void login(Client client) {
-
-        }
-
+        public void login(Client client) {}
+        @Override
+        public void endGame(Client client) {}
     }
     //매칭 중인 상태, 게임 진행 전 단계.
     class InGame implements ConnectState {
@@ -354,20 +332,11 @@ public class Client extends JFrame {
         }
 
         @Override
-        public void requestMatching(Client client) {
-            serverChat.append("게임이 이미 진행 중입니다.\n");
-        }
-
+        public void requestMatching(Client client) {}
         @Override
-        public void startGame(Client client) {
-            serverChat.append("게임이 이미 진행 중입니다.\n");
-        }
-
+        public void startGame(Client client) {}
         @Override
-        public void login(Client client) {
-
-        }
-
+        public void login(Client client) {}
     }
     //게임 중인 상태.
 
@@ -410,7 +379,6 @@ public class Client extends JFrame {
                 }
             }
         });
-        serverChat.append("111");
         acceptThread.start();
     }
     public void notConnectedToRequestMatching() throws IOException{

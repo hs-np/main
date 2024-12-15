@@ -13,7 +13,7 @@ public class Server extends JFrame{
     private JTextArea server_display;
     private String address;
     private String port;
-    private JButton exit, disconnect, connect;
+    private JButton disconnect, connect;
     private ServerSocket serverSocket;
     private Thread acceptThread;
     private Vector<User> users = new Vector<>();
@@ -42,18 +42,15 @@ public class Server extends JFrame{
     private int player2RectNum = 0;
     private List<String> list = new ArrayList<>();
 
-    // 옵저버 설정
-
     public Server(String address, String port){
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setBounds(800, 300, 500, 500);
-        this.setTitle("ObjectInputServer GUI");
+        this.setTitle("DotAndBoxServer");
         this.port = port;
         player1.addObserver(logger);
         player2.addObserver(logger);
         ServerGUI();
         this.setVisible(true);
-
     }
     public void ServerGUI(){
         this.getContentPane().add(createDisplayPanel(), BorderLayout.CENTER);
@@ -185,15 +182,7 @@ public class Server extends JFrame{
             chatSend(socket);
         }
 
-        //클라이언트 상태 전달 및 게임 진행 중계.
-        private void broadCast(String msg){
-            for (User u : users) {
-                u.sendMessage(msg);
-            }
-        }
-
         private void chatSend(Socket cs){
-            //chatSender = null;
 
             try {
                 chatSender = new BufferedWriter(new OutputStreamWriter(cs.getOutputStream()));
@@ -205,7 +194,6 @@ public class Server extends JFrame{
                 while((msg = ((BufferedReader)testReader).readLine()) != null){
                     processMessage(msg);
                     SwingUtilities.invokeLater(() -> {
-                        //synchronized (this) {
                             String tempPoint = rectPoint;
                             if (!tempPoint.equals("")) {
                                 broadCast(loginId + ":" + "사각형:" + tempPoint);
@@ -219,8 +207,8 @@ public class Server extends JFrame{
                                 }
                             }
                     });
+                    //processMessage와 별개로 DequeLogger에서 사각형을 발견하면 그 정보를 클라이언트에게 전송하도록 함.
                 }
-
             }
             catch(IOException e){
                 e.printStackTrace();
@@ -315,7 +303,12 @@ public class Server extends JFrame{
                 e.printStackTrace();
             }
         }
-
+        //클라이언트 상태 전달 및 게임 진행 중계.
+        private void broadCast(String msg){
+            for (User u : users) {
+                u.sendMessage(msg);
+            }
+        }
         private void sendMessage(String msg){
             try{
                 chatSender.write(msg+"\n");
