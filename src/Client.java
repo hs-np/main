@@ -221,6 +221,19 @@ public class Client extends JFrame {
                 }
             }
         });
+        backTurn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try{
+                    bw.write("재시작\n");
+                    bw.flush();
+                    soundEffect("src/Music/clickSound.mp3", false);
+                }
+                catch(IOException e1){
+                    System.out.println("currentLine 오류");
+                }
+            }
+        });
         backTurn.setEnabled(false);
         turn.setEnabled(false);
         controlPanel.add(matching);
@@ -298,7 +311,7 @@ public class Client extends JFrame {
                     turn.setEnabled(false);
                 }
             }
-            //serverChat.append(msg+"\n");
+            serverChat.append(msg+"\n");
             if(msg.contains(":")){
                 String[] lineData = msg.split(":");
                 if(lineData.length == 3){

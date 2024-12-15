@@ -41,6 +41,8 @@ public class Server extends JFrame{
     private int player1RectNum = 0;
     private int player2RectNum = 0;
     private List<String> list = new ArrayList<>();
+    private boolean player1reStart = false;
+    private boolean player2reStart = false;
 
     public Server(String address, String port){
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -228,6 +230,43 @@ public class Server extends JFrame{
                     break;
                 case "게임종료":
                     handleGameEnd();
+                    break;
+                case "재시작":
+                    for(int i = 0;i<gameRoom.size();i++){
+                        if(gameRoom.get(i)[0] == this){
+                            if(gameRoom.get(i)[0].loginId == player1Name){
+                                player1reStart = true;
+                                if(player2reStart == false)gameRoom.get(i)[1].sendMessage("재요청버튼을 누르면 다시 시작합니다.");
+                                else broadCast("재요청을 수락했습니다.");
+                            }
+                            else if(gameRoom.get(i)[0].loginId == player2Name){
+                                player2reStart = true;
+                                if(player1reStart == false)gameRoom.get(i)[1].sendMessage("재요청버튼을 누르면 다시 시작합니다.");
+                                else broadCast("재요청을 수락했습니다.");
+                            }
+                        }
+                        else if(gameRoom.get(i)[1] == this){
+                            if(gameRoom.get(i)[1].loginId == player1Name){
+                                player1reStart = true;
+                                if(player2reStart == false)gameRoom.get(i)[0].sendMessage("재요청버튼을 누르면 다시 시작합니다.");
+                                else broadCast("재요청을 수락했습니다.");
+                            }
+                            else if(gameRoom.get(i)[1].loginId == player2Name){
+                                player2reStart = true;
+                                if(player1reStart == false)gameRoom.get(i)[0].sendMessage("재요청버튼을 누르면 다시 시작합니다.");
+                                else broadCast("재요청을 수락했습니다.");
+                            }
+                        }
+                        if(player1reStart == true && player2reStart == true){
+                            player1reStart = false;
+                            player2reStart = false;
+                        }
+                    }
+//                    try{
+//                    }
+//                    catch(IOException e){
+//
+//                    }
                     break;
                 default:
                     broadCast(msg);
