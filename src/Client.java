@@ -571,7 +571,7 @@ public class Client extends JFrame {
         bw.write("매칭\n");
         bw.flush();
         setConnectState(new Matching());
-
+        serverChat.append("도트앤박스 게임은 두 명의 플레이어가 번갈아 가며\n점을 연결해 네모를 만들어 가는 전략 보드 게임입니다.\n상대방의 상자 생성을 막고, 가능한 많은 상자를 차지하는\n것이 목표입니다.게임의 승자는 가장 많은 상자 혹은\n먼저 3박스를 완성한 플레이어가 됩니다.\n");
 
         JPanel praticePanel = makePraticePanel();
         this.getContentPane().removeAll();
