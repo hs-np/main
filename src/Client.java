@@ -224,17 +224,15 @@ public class Client extends JFrame {
                     return;
                 }
                 String currentLineString = comparisonLine(currentLine.p1.x + ","+currentLine.p1.y + ","+currentLine.p2.x + ","+ currentLine.p2.y);
-                serverChat.append("currentLineString: "+currentLineString+"\n");
+                //serverChat.append("currentLineString: "+currentLineString+"\n");
                 for(String line: myLine){
                     String sortLine = comparisonLine(line);
-                    serverChat.append("myline: "+sortLine+"\n");
                     if(currentLineString.equals(sortLine)){
                         sameLine = true;
                     }
                 }
                 for(String line: matchingLine){
                     String sortLine = comparisonLine(line);
-                    serverChat.append("matchingLine: "+sortLine+"\n");
                     if(currentLineString.equals(sortLine)){
                         sameLine = true;
                     }
@@ -303,11 +301,12 @@ public class Client extends JFrame {
         switch(msg){
             case "로그인수락":login();
                 break;
-            default: serverChat.append("로그인 실패: " + msg + "\n");
+            default: serverChat.append(msg + "\n");
                 break;
         }
     }
     public void checkSignUp(JPanel paintPanel, String msg){
+        serverChat.append(msg + "\n");
         switch(msg){
             case "회원가입성공":
                 JOptionPane.showMessageDialog(paintPanel, "회원가입에 성공했습니다.","성공!", JOptionPane.PLAIN_MESSAGE);
@@ -325,7 +324,6 @@ public class Client extends JFrame {
             });
             //턴을 넘기면 선이 그려지게 함.
     }
-
     public void startConnect() throws IOException {
         String msg;
         while ((msg = br.readLine()) != null) {
@@ -334,13 +332,12 @@ public class Client extends JFrame {
             }
             //매칭 방에 사람이 두명 이상 존재하면 바로 팀 매칭이 됨.
             else if(msg.equals("게임종료")){
-                //restart();
                 endGame();
             }
             else if(msg.equals("재시작수락")){
                 restart();
             }
-            else if(msg.contains("턴입니다")){
+            if(msg.contains("턴입니다")){
                 String nickname = msg.replaceAll("턴입니다.$", "");
                 System.out.println(nickname);
                 if(userId.equals(nickname)){
@@ -351,8 +348,7 @@ public class Client extends JFrame {
                     turn.setEnabled(false);
                 }
             }
-            serverChat.append(msg+"\n");
-            if(msg.contains(":")){
+            else if(msg.contains(":")){
                 String[] lineData = msg.split(":");
                 if(lineData.length == 3){
                     System.out.println(lineData[0]+","+lineData[1]+","+lineData[2]);
@@ -373,6 +369,7 @@ public class Client extends JFrame {
                     handleTurnEnd(lineData[1]);
                 }
             }
+            serverChat.append(msg+"\n");
         }
     }
     public void soundEffect(String mp3Path, boolean loop){
@@ -458,7 +455,7 @@ public class Client extends JFrame {
             myRect.clear();
             matchingRect.clear();
             repaint();
-            serverChat.append("게임이 재시작되었습니다.");
+            //serverChat.append("게임이 재시작되었습니다.");
         }
     }
     //게임 중인 상태.
@@ -475,7 +472,7 @@ public class Client extends JFrame {
             myRect.clear();
             matchingRect.clear();
             repaint();
-            serverChat.append("매칭을 시작합니다.");
+            //serverChat.append("매칭을 시작합니다.\n");
             try{
                 endGameToRequestMatching();
             }
@@ -509,7 +506,7 @@ public class Client extends JFrame {
     public void endGameToRequestMatching() throws IOException{
         bw.write("매칭\n");
         bw.flush();
-        serverChat.append("클라: 매칭 중...\n");
+        serverChat.append("매칭을 시작합니다.\n");
         setConnectState(new Matching());
 
         JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
@@ -521,13 +518,21 @@ public class Client extends JFrame {
         this.repaint();
     }
     public void inGameToEndGame() throws IOException{
-        serverChat.append("게임이 종료되었습니다.");
-        setConnectState(new EndGame());
+        serverChat.append("게임이 종료되었습니다.\n");
+        this.getContentPane().removeAll();
+        JPanel jPanel = new JPanel();
+        jPanel.setBackground(Color.BLACK);
+        this.getContentPane().add(jPanel, BorderLayout.CENTER);
+        this.getContentPane().add(serverChat, BorderLayout.EAST);
+        this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         matching.setEnabled(true);
         backTurn.setEnabled(false);
         turn.setEnabled(false);
-        bw.write("게임종료\n");
-        bw.flush();
+//        bw.write("게임종료\n");
+//        bw.flush();
+        this.revalidate();
+        repaint();
+        setConnectState(new EndGame());
     }
     public void loginSucessConnnect(){
         login.setVisible(false);
@@ -555,7 +560,7 @@ public class Client extends JFrame {
     public void notConnectedToRequestMatching() throws IOException{
         bw.write("매칭\n");
         bw.flush();
-        serverChat.append("클라: 매칭 중...\n");
+        serverChat.append("매칭을 시작합니다.\n");
         setConnectState(new Matching());
 
         JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
@@ -575,7 +580,7 @@ public class Client extends JFrame {
         }
     }
     public void requestMatchingToInGame() {
-        serverChat.append("게임을 시작합니다. 곧 색 선택창이 활성화됩니다.\n");
+        //serverChat.append("게임을 시작합니다.\n");
         matching.setEnabled(false);
         backTurn.setEnabled(true);
         turn.setEnabled(true);
