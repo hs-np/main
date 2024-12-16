@@ -531,9 +531,9 @@ public class Client extends JFrame {
         setConnectState(new Matching());
         resultGame = false;
 
-        JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
+        JPanel praticePanel = makePraticePanel();// 4x4 점
         this.getContentPane().removeAll();
-        this.getContentPane().add(matchingPanel, BorderLayout.CENTER);
+        this.getContentPane().add(praticePanel, BorderLayout.CENTER);
         this.getContentPane().add(serverChat, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
@@ -583,24 +583,17 @@ public class Client extends JFrame {
         });
         acceptThread.start();
     }
+
     public void notConnectedToRequestMatching() throws IOException{
         bw.write("매칭\n");
         bw.flush();
         serverChat.append("매칭을 시작합니다.\n");
         setConnectState(new Matching());
 
-        JPanel wrapper = new JPanel(new FlowLayout());
-        JPanel jpanel = new JPanel(new BorderLayout());
-        jpanel.setBackground(Color.white);
-        wrapper.setBackground(Color.white);
-        JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
-        //matchingPanel.setPreferredSize(new Dimension(100, 100));
-        wrapper.add(matchingPanel);
-        JLabel jLabel = new JLabel("매칭 중");
-        jpanel.add(jLabel, BorderLayout.NORTH);
-        jpanel.add(wrapper, BorderLayout.CENTER);
+
+        JPanel praticePanel = makePraticePanel();
         this.getContentPane().removeAll();
-        this.getContentPane().add(jpanel, BorderLayout.CENTER);
+        this.getContentPane().add(praticePanel, BorderLayout.CENTER);
         this.getContentPane().add(serverChat, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
@@ -636,6 +629,21 @@ public class Client extends JFrame {
         this.repaint();
     }
     //상태에 따른 로직 메소드
+    public JPanel makePraticePanel(){
+        JPanel praticePanel = new JPanel(new BorderLayout());
+        JPanel wrapperGamePanel = new JPanel(new FlowLayout());
+        praticePanel.setBackground(Color.white);
+        wrapperGamePanel.setBackground(Color.white);
+
+        JPanel praticeGamePanel = new PraticeGamePanel(4); // 4x4 점
+        wrapperGamePanel.add(praticeGamePanel);
+        JLabel matchingLabel = new JLabel("매칭 중...");
+        matchingLabel.setFont(new Font("SansSerif", Font.PLAIN, 20));
+        matchingLabel.setBounds(50, 0, 100,20);
+        praticePanel.add(matchingLabel, BorderLayout.NORTH);
+        praticePanel.add(wrapperGamePanel, BorderLayout.CENTER);
+        return praticePanel;
+    }
 
     class DotAndBoxGamePanel extends JPanel {
         private int gridSize;
