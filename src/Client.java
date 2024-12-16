@@ -8,7 +8,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -16,7 +16,24 @@ public class Client extends JFrame {
 
     private String address;
     private String port;
-    private JLabel title= new JLabel("제목");
+
+    // 이미지 로드
+    //ImageIcon titleIcon = new ImageIcon("src/Image/title.jpg");
+    Image titleIcon = new ImageIcon("src/Image/title.jpg").getImage().getScaledInstance(800, 105, Image.SCALE_SMOOTH);
+    ImageIcon scaledTitleIcon = new ImageIcon(titleIcon);
+    JLabel titleLabel = new JLabel(scaledTitleIcon);
+
+    Image winIcon = new ImageIcon("src/Image/youwin.jpg").getImage().getScaledInstance(780, 140, Image.SCALE_SMOOTH);
+    ImageIcon scaledWinIcon = new ImageIcon(winIcon);
+    JLabel winLabel = new JLabel(scaledWinIcon);
+
+    Image failIcon = new ImageIcon("src/Image/gameover.jpg").getImage().getScaledInstance(570, 126, Image.SCALE_SMOOTH);
+    ImageIcon scaledFailIcon = new ImageIcon(failIcon);
+    JLabel failLabel = new JLabel(scaledFailIcon);
+
+    private boolean resultGame = false;
+
+
     private JTextField login= new JTextField();
     private JTextField password= new JTextField();
     private JButton signinButton = new JButton("로그인");
@@ -25,14 +42,23 @@ public class Client extends JFrame {
     private Socket socket;
     private BufferedWriter bw;
     private BufferedReader br;
-    private Thread acceptThread;
+    private Thread LoginThread;
     //계속 서버에서의 메시지를 받고 연결을 유지하기 위해 멀티 스레드 결정.
+    private Line currentLine; // 현재 선을 저장하는 전역 변수
+
+    private ArrayDeque<String> myLine = new ArrayDeque<>();
+    private ArrayDeque<String> matchingLine = new ArrayDeque<>();
+    private String userId;
+    private ArrayDeque<String> myRect = new ArrayDeque<>();
+    private ArrayDeque<String> matchingRect = new ArrayDeque<>();
 
     private JPanel controlPanel;
     private JButton matching = new JButton("매칭");
-    private JButton backTurn = new JButton("무르기");
+    private JButton backTurn = new JButton("재시작");
     private JButton turn = new JButton("턴종료");
     private JButton exit = new JButton("나가기");
+    private JTextField addressField= new JTextField();
+    private JTextField portField= new JTextField();
 
     private ConnectState connectState = new NotConnected();
     //초기 상태는 매칭전 상태.
@@ -48,36 +74,67 @@ public class Client extends JFrame {
         this.address = address;
         this.port = port;
         this.setBounds(0, 0, 1000, 550);
-        this.setTitle("Client GUI");
+        this.setTitle("DotAndBox Client");
         startGUI();
-
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setVisible(true);
+        soundEffect("src/Music/mainMusic.mp3", true);
+
     }
     public void startGUI(){
-        this.add(new JScrollPane(serverChat));
-
-        this.getContentPane().add(paintPanel(), BorderLayout.CENTER);
+        this.getContentPane().setBackground(Color.WHITE);
+        JPanel paintPanel = paintPanel();
+        paintPanel.setBackground(Color.WHITE);
+        this.getContentPane().add(paintPanel, BorderLayout.CENTER);
 
         serverChat = new JTextArea(20,10);
+
         this.getContentPane().add(serverChat, BorderLayout.EAST);
         controlPanel = controlPanel();
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         controlPanel.setVisible(false);
     }
+    private static void addPlaceholder(JTextField textField, String placeholder) {
+        textField.setText(placeholder);
+        textField.setForeground(Color.GRAY);
+
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textField.getText().equals(placeholder)) {
+                    textField.setText("");
+                    textField.setForeground(Color.BLACK);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textField.getText().isEmpty()) {
+                    textField.setText(placeholder);
+                    textField.setForeground(Color.GRAY);
+                }
+            }
+        });
+    }
     public JPanel paintPanel(){
         JPanel paintPanel = new JPanel();
         paintPanel.setLayout(null);
-        title.setBounds(475, 100, 50, 50);
         login.setBounds(400, 300, 140, 25);
         password.setBounds(400, 325, 140, 25);
         signinButton.setBounds(540, 300, 70, 25);
         signupButton.setBounds(540, 325, 70, 25);
-        paintPanel.add(title);
+        titleLabel.setBounds(43, 100, 800, 105);
+        addressField.setBounds(400, 350, 105, 25);
+        portField.setBounds(505, 350, 105, 25);
+        addPlaceholder(addressField,address);
+        addPlaceholder(portField,port);
         paintPanel.add(login);
         paintPanel.add(password);
         paintPanel.add(signinButton);
         paintPanel.add(signupButton);
+        paintPanel.add(titleLabel);
+        paintPanel.add(addressField);
+        paintPanel.add(portField);
 
         login.addFocusListener(new FocusAdapter() {
             @Override
@@ -118,6 +175,7 @@ public class Client extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try{
+                    soundEffect("src/Music/clickSound.mp3", false);
                     LoginData loginData = makeloginData("로그인");
                     sendLoginData(loginData);
                     String msg = sendResult();
@@ -133,6 +191,7 @@ public class Client extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try{
+                    soundEffect("src/Music/clickSound.mp3", false);
                     LoginData loginData = makeloginData("회원가입");
                     sendLoginData(loginData);
                     String msg = sendResult();
@@ -150,16 +209,68 @@ public class Client extends JFrame {
         matching.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                soundEffect("src/Music/clickSound.mp3", false);
                 requestMatching();
             }
         });
         exit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                soundEffect("src/Music/clickSound.mp3", false);
                 endGame();
             }
         });
-
+        turn.addActionListener(new ActionListener() {
+            boolean sameLine = false;
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(currentLine == null){
+                    serverChat.append("두 점을 선택해 선을 만들어주세요.");
+                    return;
+                }
+                String currentLineString = comparisonLine(currentLine.p1.x + ","+currentLine.p1.y + ","+currentLine.p2.x + ","+ currentLine.p2.y);
+                //serverChat.append("currentLineString: "+currentLineString+"\n");
+                for(String line: myLine){
+                    String sortLine = comparisonLine(line);
+                    if(currentLineString.equals(sortLine)){
+                        sameLine = true;
+                    }
+                }
+                for(String line: matchingLine){
+                    String sortLine = comparisonLine(line);
+                    if(currentLineString.equals(sortLine)){
+                        sameLine = true;
+                    }
+                }
+                if(sameLine){
+                    serverChat.append("이미 선택한 선입니다.");
+                    sameLine = false;
+                    return;
+                }
+                String msg =userId + ":"+currentLineString+"\n";
+                try{
+                    bw.write(msg);
+                    bw.flush();
+                    soundEffect("src/Music/clickSound.mp3", false);
+                }
+                catch(IOException e1){
+                    System.out.println("currentLine 오류");
+                }
+            }
+        });
+        backTurn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try{
+                    bw.write("재시작\n");
+                    bw.flush();
+                    soundEffect("src/Music/clickSound.mp3", false);
+                }
+                catch(IOException e1){
+                    System.out.println("currentLine 오류");
+                }
+            }
+        });
         backTurn.setEnabled(false);
         turn.setEnabled(false);
         controlPanel.add(matching);
@@ -171,11 +282,14 @@ public class Client extends JFrame {
 
     public LoginData makeloginData(String str){
         String idData = login.getText();
+        userId = idData;
         String pwData = password.getText();
         LoginData loginData = new LoginData(idData, pwData, str);
         return loginData;
     }
     public void sendLoginData(LoginData loginData) throws IOException{
+        String address = addressField.getText();
+        String port = portField.getText();
         socket = new Socket(address, Integer.parseInt(port));
         ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
         br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -184,18 +298,20 @@ public class Client extends JFrame {
     }
     public String sendResult() throws IOException{
         String msg = br.readLine();
-        serverChat.append(msg + "\n");
         return msg;
     }
     public void checkSignIn(String msg) throws IOException{
         switch(msg){
-            case "로그인수락":login();
+            case "로그인수락":
+                serverChat.append(msg+"\n");
+                login();
                 break;
-            default: serverChat.append("로그인 실패: " + msg + "\n");
+            default: serverChat.append(msg + "\n");
                 break;
         }
     }
     public void checkSignUp(JPanel paintPanel, String msg){
+        serverChat.append(msg + "\n");
         switch(msg){
             case "회원가입성공":
                 JOptionPane.showMessageDialog(paintPanel, "회원가입에 성공했습니다.","성공!", JOptionPane.PLAIN_MESSAGE);
@@ -206,16 +322,73 @@ public class Client extends JFrame {
         }
     }
 
+    private void handleTurnEnd(String lineData) {
+            matchingLine.add(lineData); // 상대방 선 정보 추가
+            SwingUtilities.invokeLater(() -> {
+                repaint(); // GUI 갱신
+            });
+            //턴을 넘기면 선이 그려지게 함.
+    }
     public void startConnect() throws IOException {
-        String msg = br.readLine();
-        //while ((msg = br.readLine()) != null) {
+        String msg;
+        while ((msg = br.readLine()) != null) {
             if(msg.equals("게임시작")){
                 startGame();
             }
             //매칭 방에 사람이 두명 이상 존재하면 바로 팀 매칭이 됨.
+            else if(msg.equals("게임종료")){
+                endGame();
+            }
+            else if(msg.equals("재시작수락")){
+                restart();
+            }
+            if(msg.contains("턴입니다")){
+                String nickname = msg.replaceAll("턴입니다.$", "");
+                System.out.println(nickname);
+                if(userId.equals(nickname)){
+                    turn.setEnabled(true);
+                    soundEffect("src/Music/turnStart.mp3", false);
+                }
+                else{
+                    turn.setEnabled(false);
+                }
+            }
+            else if(msg.contains(":")){
+                String[] lineData = msg.split(":");
+                if(lineData.length == 3){
+                    System.out.println(lineData[0]+","+lineData[1]+","+lineData[2]);
+                    System.out.println("267userId는"+userId);
+                    if(lineData[0].equals(userId)){
+                        System.out.println("true");
+                        myRect.add(lineData[2]);
+                    }
+                    else matchingRect.add(lineData[2]);
+                    repaint();
+                    continue;
+                }
+                System.out.println(lineData[0]+","+lineData[1]);
+                System.out.println(userId);
+                if(msg.contains("게임승리")){
+                    System.out.println(userId+"게임승리");
+                    if(userId.equals(lineData[0])){
+                        resultGame = true;
+                    }
+                }
+                else{
+                    if(lineData[0].equals(userId)){
+                        myLine.add(lineData[1]);
+                    }
+                    else {
+                        handleTurnEnd(lineData[1]);
+                    }
+                }
+            }
             serverChat.append(msg+"\n");
-            //displayDotAndBoxGame();
-        //}
+        }
+    }
+    public void soundEffect(String mp3Path, boolean loop){
+        Mp3PlayerThread mp3Player = new Mp3PlayerThread(mp3Path, loop);
+        mp3Player.start();
     }
 
     interface ConnectState {
@@ -223,56 +396,43 @@ public class Client extends JFrame {
         public void requestMatching(Client client);
         public void startGame(Client client);
         public void login(Client client) throws IOException;
+        public void restart(Client client);
     }
     //연결상태에 따라 진행. 게임 진행을 어느 상태인지에 따라 관리함. -> 상태에 따라 동일한 버튼 클릭도 다른 반응이 나오기 때문.
     // ex) 매칭 전 매칭 버튼, 게임 중 매칭 버튼 클릭은 다른 반응을 보여야 함.
     class NotConnected implements ConnectState {
-
-        @Override
-        public void endGame(Client client) {
-
-        }
         @Override
         public void requestMatching(Client client) {
-            try {
-                notConnectedToRequestMatching();
-            } catch (IOException e) {
-                serverChat.append("매칭 요청 중 오류가 발생했습니다.\n");
-            }
+            try {notConnectedToRequestMatching();
+            } catch (IOException e) {serverChat.append("매칭 요청 중 오류가 발생했습니다.\n");}
         }
         @Override
-        public void startGame(Client client) {
-            serverChat.append("매칭을 먼저 해야합니다.\n");
-        }
+        public void login(Client client){loginSucessConnnect();}
+
         @Override
-        public void login(Client client){
-            loginSucessConnnect();
-        }
+        public void restart(Client client) {}
+        @Override
+        public void startGame(Client client) {}
+        @Override
+        public void endGame(Client client) {}
     }
     //매칭 전 상태
     class Matching implements ConnectState {
 
         @Override
-        public void endGame(Client client) {
-
-        }
-
-        @Override
         public void requestMatching(Client client) {
-            try{
-                requestMatchingToNotConnected();
-            }
-            catch(IOException e){System.out.println(e.getMessage());}
+            try{requestMatchingToNotConnected();}
+            catch(IOException e){serverChat.append(e.getMessage()+"\n");}
         }
-
         @Override
         public void startGame(Client client) {requestMatchingToInGame();}
 
         @Override
-        public void login(Client client) {
-
-        }
-
+        public void login(Client client) {}
+        @Override
+        public void restart(Client client) {}
+        @Override
+        public void endGame(Client client) {}
     }
     //매칭 중인 상태, 게임 진행 전 단계.
     class InGame implements ConnectState {
@@ -280,7 +440,7 @@ public class Client extends JFrame {
         @Override
         public void endGame(Client client) {
             try{
-                inGameToNotConnected();
+                inGameToEndGame();
             }
             catch(IOException e){
                 System.out.println(e.getMessage());
@@ -288,33 +448,56 @@ public class Client extends JFrame {
         }
 
         @Override
-        public void requestMatching(Client client) {
-            serverChat.append("게임이 이미 진행 중입니다.\n");
-        }
+        public void requestMatching(Client client) {}
+        @Override
+        public void startGame(Client client) {}
+        @Override
+        public void login(Client client) {}
 
         @Override
-        public void startGame(Client client) {
-            serverChat.append("게임이 이미 진행 중입니다.\n");
+        public void restart(Client client) {
+            currentLine = null;
+            myLine.clear();
+            matchingLine.clear();
+            myRect.clear();
+            matchingRect.clear();
+            repaint();
+            //serverChat.append("게임이 재시작되었습니다.");
         }
-
-        @Override
-        public void login(Client client) {
-
-        }
-
-
     }
     //게임 중인 상태.
+    class EndGame implements ConnectState {
 
-    public void requestMatching(){
-        connectState.requestMatching(this);
+        @Override
+        public void endGame(Client client) {}
+
+        @Override
+        public void requestMatching(Client client) {
+            currentLine = null;
+            myLine.clear();
+            matchingLine.clear();
+            myRect.clear();
+            matchingRect.clear();
+            repaint();
+            try{
+                endGameToRequestMatching();
+            }
+            catch(IOException e){
+                serverChat.append(e.getMessage()+"\n");
+            }
+        }
+        @Override
+        public void startGame(Client client) {}
+        @Override
+        public void login(Client client) {}
+        @Override
+        public void restart(Client client) {}
     }
-    public void startGame(){
-        connectState.startGame(this);
-    }
-    public void endGame(){
-        connectState.endGame(this);
-    }
+
+    public void requestMatching(){connectState.requestMatching(this);}
+    public void startGame(){connectState.startGame(this);}
+    public void endGame(){connectState.endGame(this);}
+    public void restart(){connectState.restart(this);}
     public void login() throws IOException{connectState.login(this);}
     //통신을 통한 상태변경 메소드
 
@@ -325,17 +508,49 @@ public class Client extends JFrame {
         new Client(address, port);
     }
 
+    public void endGameToRequestMatching() throws IOException{
+        bw.write("매칭\n");
+        bw.flush();
+        setConnectState(new Matching());
+        resultGame = false;
+
+        JPanel praticePanel = makePraticePanel();// 4x4 점
+        this.getContentPane().removeAll();
+        this.getContentPane().add(praticePanel, BorderLayout.CENTER);
+        this.getContentPane().add(serverChat, BorderLayout.EAST);
+        this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
+        this.revalidate();
+        this.repaint();
+    }
+    public void inGameToEndGame() throws IOException{
+        serverChat.append("게임이 종료되었습니다.\n");
+        this.getContentPane().removeAll();
+        JPanel jPanel = new JPanel();
+        if(resultGame == false){jPanel.add(failLabel, BorderLayout.CENTER);}
+        else {jPanel.add(winLabel, BorderLayout.CENTER);}
+        jPanel.setBackground(Color.BLACK);
+        this.getContentPane().add(jPanel, BorderLayout.CENTER);
+        this.getContentPane().add(serverChat, BorderLayout.EAST);
+        this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
+        matching.setEnabled(true);
+        backTurn.setEnabled(false);
+        turn.setEnabled(false);
+        this.revalidate();
+        repaint();
+        setConnectState(new EndGame());
+    }
     public void loginSucessConnnect(){
-        title.setVisible(false);
         login.setVisible(false);
         password.setVisible(false);
         signinButton.setVisible(false);
         signupButton.setVisible(false);
+        addressField.setVisible(false);
+        portField.setVisible(false);
         controlPanel.setVisible(true);
-        acceptThread = new Thread(new Runnable() {
+        LoginThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                while(acceptThread == Thread.currentThread()){
+                while(LoginThread == Thread.currentThread()){
                     try{
                         startConnect();
                     }
@@ -345,18 +560,18 @@ public class Client extends JFrame {
                 }
             }
         });
-        serverChat.append("111");
-        acceptThread.start();
+        LoginThread.start();
     }
+
     public void notConnectedToRequestMatching() throws IOException{
         bw.write("매칭\n");
         bw.flush();
-        serverChat.append("클라: 매칭 중...\n");
         setConnectState(new Matching());
 
-        JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
+
+        JPanel praticePanel = makePraticePanel();
         this.getContentPane().removeAll();
-        this.getContentPane().add(matchingPanel, BorderLayout.CENTER);
+        this.getContentPane().add(praticePanel, BorderLayout.CENTER);
         this.getContentPane().add(serverChat, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
@@ -366,49 +581,152 @@ public class Client extends JFrame {
         if (connectState.getClass() == new Matching().getClass()) {
             bw.write("매칭취소\n");
             bw.flush();
-            serverChat.append("매칭을 취소합니다.\n");
             setConnectState(new NotConnected());
         }
     }
     public void requestMatchingToInGame() {
-        serverChat.append("게임을 시작합니다. 곧 색 선택창이 활성화됩니다.\n");
+        setConnectState(new InGame());
+
         matching.setEnabled(false);
         backTurn.setEnabled(true);
         turn.setEnabled(true);
-        setConnectState(new InGame());
-
+        JPanel wrapperGamePanel = new JPanel(new FlowLayout());
+        wrapperGamePanel.setBackground(Color.white);
         JPanel gamePanel = new DotAndBoxGamePanel(4); // 4x4 점
+        wrapperGamePanel.add(gamePanel);
+
+        serverChat = new JTextArea(30,20);
+        serverChat.setLineWrap(true);  // 줄 바꿈 활성화
+        serverChat.setWrapStyleWord(true); // 단어 단위로 줄 바꿈
+        JScrollPane scrollPane = new JScrollPane(serverChat);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+
         this.getContentPane().removeAll();
-        this.getContentPane().add(gamePanel, BorderLayout.CENTER);
-        this.getContentPane().add(serverChat, BorderLayout.EAST);
+        this.getContentPane().add(wrapperGamePanel, BorderLayout.CENTER);
+        this.getContentPane().add(scrollPane, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
         this.repaint();
     }
-    public void inGameToNotConnected() throws IOException{
-        serverChat.append("게임이 종료되었습니다.");
-        setConnectState(new NotConnected());
-        matching.setEnabled(true);
-        backTurn.setEnabled(false);
-        turn.setEnabled(false);
-        bw.write("게임종료\n");
-        bw.flush();
-    }
     //상태에 따른 로직 메소드
+    public JPanel makePraticePanel(){
+        JPanel praticePanel = new JPanel(new BorderLayout());
+        JPanel wrapperGamePanel = new JPanel(new FlowLayout());
+        praticePanel.setBackground(Color.white);
+        wrapperGamePanel.setBackground(Color.white);
+
+        JPanel praticeGamePanel = new PraticeGamePanel(4); // 4x4 점
+        wrapperGamePanel.add(praticeGamePanel);
+        JLabel matchingLabel = new JLabel("매칭 중...");
+        matchingLabel.setFont(new Font("SansSerif", Font.PLAIN, 20));
+        matchingLabel.setBounds(50, 0, 100,20);
+        praticePanel.add(matchingLabel, BorderLayout.NORTH);
+        praticePanel.add(wrapperGamePanel, BorderLayout.CENTER);
+        return praticePanel;
+    }
 
     class DotAndBoxGamePanel extends JPanel {
         private int gridSize;
         private boolean[][] horizontalLines;
         private boolean[][] verticalLines;
         private int dotSpacing = 100; // 점 사이 간격
-        private Line currentLine; // 현재 선을 저장하는 전역 변수
         private Queue<Point> clickedPoints; // 최근 클릭된 두 점을 저장하는 큐
+        private void drawRectanglesFromMyRect(Graphics g) {
+            g.setColor(Color.GREEN); // 사각형의 색상을 설정
+
+
+            for (String rectData : myRect) {
+                System.out.println(userId+"myRect: "+rectData);
+                String[] points = rectData.split(",");
+                if (points.length == 4) {
+                    int x1 = Integer.parseInt(points[0]);
+                    int y1 = Integer.parseInt(points[1]);
+                    int x2 = Integer.parseInt(points[2]);
+                    int y2 = Integer.parseInt(points[3]);
+
+                    // 사각형의 시작점과 크기를 계산
+                    int startX = 50 + Math.min(x1, x2) * dotSpacing;
+                    int startY = 50 + Math.min(y1, y2) * dotSpacing;
+                    int width = Math.abs(x2 - x1) * dotSpacing;
+                    int height = Math.abs(y2 - y1) * dotSpacing;
+
+                    // 사각형 그리기
+                    g.fillRect(startX, startY, width, height);
+                }
+            }
+        }
+
+        private void drawRectanglesFromMatchingRect(Graphics g) {
+            g.setColor(Color.RED); // 사각형의 색상을 설정
+
+            for (String rectData : matchingRect) {
+                System.out.println(userId+"matchingRect: "+rectData);
+                String[] points = rectData.split(",");
+                if (points.length == 4) {
+                    int x1 = Integer.parseInt(points[0]);
+                    int y1 = Integer.parseInt(points[1]);
+                    int x2 = Integer.parseInt(points[2]);
+                    int y2 = Integer.parseInt(points[3]);
+
+                    // 사각형의 시작점과 크기를 계산
+                    int startX = 50 + Math.min(x1, x2) * dotSpacing;
+                    int startY = 50 + Math.min(y1, y2) * dotSpacing;
+                    int width = Math.abs(x2 - x1) * dotSpacing;
+                    int height = Math.abs(y2 - y1) * dotSpacing;
+
+                    // 사각형 그리기
+                    g.fillRect(startX, startY, width, height);
+                }
+            }
+        }
+
+        // myLine 큐에서 선 정보를 읽어와 그리기
+        private void drawLinesFromMyLine(Graphics g) {
+            g.setColor(Color.GREEN); // myLine의 선은 빨간색으로 설정
+            System.out.println(login.getText()+"가 그린 선: "+ myLine);
+            for (String lineData : myLine) {
+                String[] points = lineData.split(",");
+                if (points.length == 4) {
+                    int x1 = Integer.parseInt(points[0]);
+                    int y1 = Integer.parseInt(points[1]);
+                    int x2 = Integer.parseInt(points[2]);
+                    int y2 = Integer.parseInt(points[3]);
+
+                    int startX = 50 + x1 * dotSpacing;
+                    int startY = 50 + y1 * dotSpacing;
+                    int endX = 50 + x2 * dotSpacing;
+                    int endY = 50 + y2 * dotSpacing;
+
+                    g.drawLine(startX, startY, endX, endY);
+                }
+            }
+        }
+
+        private void drawLinesFromMatchingLine(Graphics g) {
+            g.setColor(Color.RED); // myLine의 선은 빨간색으로 설정
+            for (String lineData : matchingLine) {
+                String[] points = lineData.split(",");
+                if (points.length == 4) {
+                    int x1 = Integer.parseInt(points[0]);
+                    int y1 = Integer.parseInt(points[1]);
+                    int x2 = Integer.parseInt(points[2]);
+                    int y2 = Integer.parseInt(points[3]);
+
+                    int startX = 50 + x1 * dotSpacing;
+                    int startY = 50 + y1 * dotSpacing;
+                    int endX = 50 + x2 * dotSpacing;
+                    int endY = 50 + y2 * dotSpacing;
+
+                    g.drawLine(startX, startY, endX, endY);
+                }
+            }
+        }
 
         public DotAndBoxGamePanel(int gridSize) {
             this.gridSize = gridSize;
             this.horizontalLines = new boolean[gridSize][gridSize - 1];
             this.verticalLines = new boolean[gridSize - 1][gridSize];
-            this.currentLine = null; // 초기에는 선이 없도록 설정
+            currentLine = null; // 초기에는 선이 없도록 설정
             this.clickedPoints = new LinkedList<>(); // 큐 초기화
             setPreferredSize(new Dimension(400, 400));
             setBackground(Color.WHITE);
@@ -446,6 +764,11 @@ public class Client extends JFrame {
                 int y2 = 50 + currentLine.p2.y * dotSpacing;
                 g.drawLine(x1, y1, x2, y2);
             }
+            // myLine에 저장된 선 그리기
+            drawLinesFromMyLine(g);
+            drawLinesFromMatchingLine(g);
+            drawRectanglesFromMyRect(g);
+            drawRectanglesFromMatchingRect(g);
         }
 
         private void handleMouseClick(Point clickPoint) {
@@ -500,4 +823,28 @@ public class Client extends JFrame {
             }
         }
     }
+    private String comparisonLine(String lineData2){
+        String[] points2 = lineData2.split(",");
+        int x1b = Integer.parseInt(points2[0]);
+        int y1b = Integer.parseInt(points2[1]);
+        int x2b = Integer.parseInt(points2[2]);
+        int y2b = Integer.parseInt(points2[3]);
+        return sortLine(x1b,y1b,x2b,y2b);
+    }
+    //사각형을 만들기 위해 필요한 선과 비교하기 위해 sortLine를 호출하여 lineData2라는 선을 가공한다.
+    private String sortLine(int x1a,int y1a,int x2a,int y2a){
+        String s = x1a+","+y1a+","+x2a+","+y2a;
+
+        if(x1a > x2a){
+            s = x2a+","+y2a+","+x1a+","+y1a;
+        }
+        else if(x1a == x2a){
+            if(y1a > y2a){
+                s = x2a+","+y2a+","+x1a+","+y1a;
+            }
+        }
+        return s;
+    }
+    //선을 표현할 수 있는 경우는 2가지 이므로
+    // 하나의 기준을 잡고 선을 표현해야 정확하게 사각형인지 아닌지 판단할 수 있기 때문에 선을 정렬시킴.
 }
