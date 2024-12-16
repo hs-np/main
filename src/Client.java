@@ -609,20 +609,24 @@ public class Client extends JFrame {
     }
     public void requestMatchingToInGame() {
         //serverChat.append("게임을 시작합니다.\n");
+        setConnectState(new InGame());
+
         matching.setEnabled(false);
         backTurn.setEnabled(true);
         turn.setEnabled(true);
-        setConnectState(new InGame());
-
+        JPanel wrapperGamePanel = new JPanel(new FlowLayout());
+        wrapperGamePanel.setBackground(Color.white);
         JPanel gamePanel = new DotAndBoxGamePanel(4); // 4x4 점
-        this.getContentPane().removeAll();
-        this.getContentPane().add(gamePanel, BorderLayout.CENTER);
+        wrapperGamePanel.add(gamePanel);
+
         serverChat = new JTextArea(30,20);
         serverChat.setLineWrap(true);  // 줄 바꿈 활성화
         serverChat.setWrapStyleWord(true); // 단어 단위로 줄 바꿈
-        // serverChat을 JScrollPane으로 감싸기
         JScrollPane scrollPane = new JScrollPane(serverChat);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);  // 세로 스크롤바 항상 표시
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+
+        this.getContentPane().removeAll();
+        this.getContentPane().add(wrapperGamePanel, BorderLayout.CENTER);
         this.getContentPane().add(scrollPane, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
