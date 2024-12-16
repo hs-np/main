@@ -524,6 +524,10 @@ public class Client extends JFrame {
     }
     public void inGameToEndGame() throws IOException{
         serverChat.append("게임이 종료되었습니다.\n");
+        try{
+            bw.write("게임종료\n");
+            bw.flush();
+        }catch(IOException e){serverChat.append(e.getMessage()+"\n");}
         this.getContentPane().removeAll();
         JPanel jPanel = new JPanel();
         if(resultGame == false){jPanel.add(failLabel, BorderLayout.CENTER);}

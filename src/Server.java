@@ -47,6 +47,7 @@ public class Server extends JFrame{
     private List<String> list = new ArrayList<>();
     private boolean player1reStart = false;
     private boolean player2reStart = false;
+    int count = 0;
 
     private JTextField addressField= new JTextField();
     private JTextField portField= new JTextField();
@@ -236,26 +237,19 @@ public class Server extends JFrame{
 
                 String msg;
                 while((msg = ((BufferedReader)testReader).readLine()) != null){
+                    //count = player1.deque.size() + player2.deque.size();
+                    System.out.println(count);
                     processMessage(msg);
-                            String tempPoint = rectPoint;
-                            if (!tempPoint.equals("")) {
-                                broadCast(loginId + ":" + "사각형:" + tempPoint);
-                                if (loginId.equals(player1Name)) {
-                                    player1RectNum++;
-                                } else {
-                                    player2RectNum++;
-                                }
-                                if (player1RectNum == 1 || player2RectNum == 1 || player2RectNum + player1RectNum == 1) {
-                                    if (player1RectNum > player2RectNum) {
-                                        broadCast(player1Name+":게임승리");
-                                    } else {
-                                        broadCast(player2Name+":게임승리");
-                                    }
-                                    broadCast("게임종료");
-                                    reset();
-                                }
-                            }
-                    //processMessage와 별개로 DequeLogger에서 사각형을 발견하면 그 정보를 클라이언트에게 전송하도록 함.
+                    String tempPoint = rectPoint;
+                    if (!tempPoint.equals("")) {
+                        broadCast(loginId + ":" + "사각형:" + tempPoint);
+                        if (loginId.equals(player1Name)) {
+                            player1RectNum++;
+                        } else {
+                            player2RectNum++;
+                        }
+                    }
+                    checkResult();
                 }
             }
             catch(IOException e){
@@ -287,6 +281,29 @@ public class Server extends JFrame{
                     break;
                     //게임진행
             }
+        }
+        private void checkResult(){
+            if (count == 24) {
+                if (player1RectNum > player2RectNum) {
+                    broadCast(player1Name+":게임승리");
+                } else {
+                    broadCast(player2Name+":게임승리");
+                }
+                broadCast("게임종료");
+                reset();
+            }
+            else{
+                if (player1RectNum == 4 || player2RectNum == 4) {
+                    if (player1RectNum > player2RectNum) {
+                        broadCast(player1Name+":게임승리");
+                    } else {
+                        broadCast(player2Name+":게임승리");
+                    }
+                    broadCast("게임종료");
+                    reset();
+                }
+            }
+            //processMessage와 별개로 DequeLogger에서 사각형을 발견하면 그 정보를 클라이언트에게 전송하도록 함.
         }
         private void handleRestart(){
             for(int i = 0;i<gameRoom.size();i++){
@@ -388,6 +405,7 @@ public class Server extends JFrame{
                 gameRoom.removeIf(room -> room[0] == this || room[1] == this);
                 broadCast(this.loginId + "님이 게임에서 나갔습니다. 게임 방이 해체되었습니다.");
             }
+            reset();
         }
         // 리소스 정리
         private void cleanupResources(Socket cs) {
@@ -445,6 +463,7 @@ public class Server extends JFrame{
 
         public void add(String element) {
             deque.add(element);
+            count++;
             for (DequeObserver observer : observers) {
                 observer.onElementAdded(element, deque);
             }
