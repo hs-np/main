@@ -142,7 +142,6 @@ public class Server extends JFrame{
         String port = portField.getText();
         System.out.println(address+","+port);
         try{
-// (ServerSocket serverSocket = new ServerSocket())
             ServerSocket serverSocket = new ServerSocket();
             serverSocket.bind(new InetSocketAddress(address, Integer.parseInt(port))); // IP와 포트 바인딩
             System.out.println("서버 실행 중: " + address + ":" + port);
@@ -180,24 +179,25 @@ public class Server extends JFrame{
                 if (userLoginData.containsKey(loginId) && userLoginData.get(loginId).equals(loginPw)) {
                     br.write("로그인수락\n");
                     br.flush();
-                    server_display.append("로그인수락.\n");
+                    server_display.append(loginId+": 로그인수락\n");
                     User user = new User(cs, loginId);
                     users.add(user);
                     user.start();
                 } else {
-                    server_display.append("로그인 실패.\n");
+                    server_display.append(loginId+": 로그인실패\n");
                     br.write("로그인실패\n");
                     br.flush();
                 }
                 break;
             case "회원가입":
                 if(!userLoginData.containsKey(loginId)){
-                    server_display.append("회원가입 성공\n");
+                    server_display.append(loginId+": 회원가입성공\n");
                     userLoginData.put(loginId, loginPw);
                     br.write("회원가입성공\n");
                     br.flush();
                 }
                 else{
+                    server_display.append(loginId+": 회원가입실패\n");
                     br.write("회원가입실패\n");
                     br.flush();
                 }
@@ -237,7 +237,6 @@ public class Server extends JFrame{
                 String msg;
                 while((msg = ((BufferedReader)testReader).readLine()) != null){
                     processMessage(msg);
-                    //SwingUtilities.invokeLater(() -> {
                             String tempPoint = rectPoint;
                             if (!tempPoint.equals("")) {
                                 broadCast(loginId + ":" + "사각형:" + tempPoint);
@@ -256,7 +255,6 @@ public class Server extends JFrame{
                                     reset();
                                 }
                             }
-                    //});
                     //processMessage와 별개로 DequeLogger에서 사각형을 발견하면 그 정보를 클라이언트에게 전송하도록 함.
                 }
             }
@@ -295,24 +293,40 @@ public class Server extends JFrame{
                 if(gameRoom.get(i)[0] == this){
                     if(gameRoom.get(i)[0].loginId == player1Name){
                         player1reStart = true;
-                        if(player2reStart == false)gameRoom.get(i)[1].sendMessage(player1Name+"님이 재시작을 요청하였습니다.\n재시작버튼을 누르면 다시 시작합니다.");
+                        if(player2reStart == false){
+                            String request = player1Name+"님이 재시작을 요청하였습니다.\n재시작버튼을 누르면 다시 시작합니다.";
+                            gameRoom.get(i)[1].sendMessage(request);
+                            server_display.append(request+"\n");
+                        }
                         else broadCast("재시작수락");
                     }
                     else if(gameRoom.get(i)[0].loginId == player2Name){
                         player2reStart = true;
-                        if(player1reStart == false)gameRoom.get(i)[1].sendMessage(player2Name+"님이 재시작을 요청하였습니다.\n재시작버튼을 누르면 다시 시작합니다.");
+                        if(player1reStart == false){
+                            String request =player2Name+"님이 재시작을 요청하였습니다.\n재시작버튼을 누르면 다시 시작합니다.";
+                            gameRoom.get(i)[1].sendMessage(request);
+                            server_display.append(request+"\n");
+                        }
                         else broadCast("재시작수락");
                     }
                 }
                 else if(gameRoom.get(i)[1] == this){
                     if(gameRoom.get(i)[1].loginId == player1Name){
                         player1reStart = true;
-                        if(player2reStart == false)gameRoom.get(i)[0].sendMessage(player1Name+"님이 재시작을 요청하였습니다.\n재시작버튼을 누르면 다시 시작합니다.");
+                        if(player2reStart == false){
+                            String request = player1Name+"님이 재시작을 요청하였습니다.\n재시작버튼을 누르면 다시 시작합니다.";
+                            gameRoom.get(i)[0].sendMessage(request);
+                            server_display.append(request+"\n");
+                        }
                         else broadCast("재시작수락");
                     }
                     else if(gameRoom.get(i)[1].loginId == player2Name){
                         player2reStart = true;
-                        if(player1reStart == false)gameRoom.get(i)[0].sendMessage(player2Name+"님이 재시작을 요청하였습니다.\n재시작버튼을 누르면 다시 시작합니다.");
+                        if(player1reStart == false){
+                            String request = player2Name+"님이 재시작을 요청하였습니다.\n재시작버튼을 누르면 다시 시작합니다.";
+                            gameRoom.get(i)[0].sendMessage(request);
+                            server_display.append(request+"\n");
+                        }
                         else broadCast("재시작수락");
                     }
                 }
@@ -334,7 +348,6 @@ public class Server extends JFrame{
         // 매칭 기능 및 게임시작 기능
         private void handleMatching() {
             if (waitingRoom.isEmpty()) {
-                this.sendMessage("당신의아이디는"+loginId);
                 broadCast(this.loginId + "님이 대기방에 입장했습니다.\n");
                 waitingRoom.add(this);
             } else {
@@ -397,6 +410,7 @@ public class Server extends JFrame{
         }
         //클라이언트 상태 전달 및 게임 진행 중계.
         private void broadCast(String msg){
+            server_display.append(loginId + ":" + msg +"\n");
             for (User u : users) {
                 u.sendMessage(msg);
             }
