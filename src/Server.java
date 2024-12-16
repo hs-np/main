@@ -247,12 +247,12 @@ public class Server extends JFrame{
                                     player2RectNum++;
                                 }
                                 if (player1RectNum == 1 || player2RectNum == 1 || player2RectNum + player1RectNum == 1) {
-                                    broadCast("게임종료");
                                     if (player1RectNum > player2RectNum) {
-                                        broadCast(player1Name+"님의 게임승리");
+                                        broadCast(player1Name+":게임승리");
                                     } else {
-                                        broadCast(player2Name+"님의 게임승리");
+                                        broadCast(player2Name+":게임승리");
                                     }
+                                    broadCast("게임종료");
                                     reset();
                                 }
                             }

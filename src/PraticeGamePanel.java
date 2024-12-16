@@ -19,8 +19,13 @@ class PraticeGamePanel extends JPanel {
         this.verticalLines = new boolean[gridSize - 1][gridSize];
         this.boxes = new boolean[gridSize - 1][gridSize - 1];
         this.lines = new ArrayList<>();
-        setPreferredSize(new Dimension(400, 400));
+
+        // 패널 크기 동적으로 설정
+        int panelSize = 50 + (gridSize - 1) * dotSpacing + 50; // 점과 여백 포함
+        setPreferredSize(new Dimension(panelSize, panelSize));
         setBackground(Color.WHITE);
+
+        // 마우스 클릭 이벤트 처리
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -62,7 +67,7 @@ class PraticeGamePanel extends JPanel {
                 if (boxes[i][j]) {
                     int x = 50 + j * dotSpacing;
                     int y = 50 + i * dotSpacing;
-                    g.fillRect(x+1, y+1, dotSpacing-1, dotSpacing-1);
+                    g.fillRect(x + 1, y + 1, dotSpacing - 1, dotSpacing - 1);
                 }
             }
         }

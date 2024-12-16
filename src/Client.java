@@ -18,10 +18,22 @@ public class Client extends JFrame {
     private String port;
 
     // 이미지 로드
-    ImageIcon titleIcon = new ImageIcon("src/Image/title.jpg");
-    Image scaledImage = titleIcon.getImage().getScaledInstance(800, 105, Image.SCALE_SMOOTH);
-    ImageIcon scaledTitleIcon = new ImageIcon(scaledImage);
+    //ImageIcon titleIcon = new ImageIcon("src/Image/title.jpg");
+    Image titleIcon = new ImageIcon("src/Image/title.jpg").getImage().getScaledInstance(800, 105, Image.SCALE_SMOOTH);
+    ImageIcon scaledTitleIcon = new ImageIcon(titleIcon);
     JLabel titleLabel = new JLabel(scaledTitleIcon);
+
+    Image winIcon = new ImageIcon("src/Image/youwin.jpg").getImage().getScaledInstance(780, 140, Image.SCALE_SMOOTH);
+    ImageIcon scaledWinIcon = new ImageIcon(winIcon);
+    JLabel winLabel = new JLabel(scaledWinIcon);
+
+    Image failIcon = new ImageIcon("src/Image/gameover.jpg").getImage().getScaledInstance(570, 126, Image.SCALE_SMOOTH);
+    ImageIcon scaledFailIcon = new ImageIcon(failIcon);
+    JLabel failLabel = new JLabel(scaledFailIcon);
+
+    private boolean resultGame = false;
+
+
     private JTextField login= new JTextField();
     private JTextField password= new JTextField();
     private JButton signinButton = new JButton("로그인");
@@ -362,11 +374,20 @@ public class Client extends JFrame {
                     continue;
                 }
                 System.out.println(lineData[0]+","+lineData[1]);
-                if(lineData[0].equals(userId)){
-                    myLine.add(lineData[1]);
+                System.out.println(userId);
+                if(msg.contains("게임승리")){
+                    System.out.println(userId+"게임승리");
+                    if(userId.equals(lineData[0])){
+                        resultGame = true;
+                    }
                 }
-                else {
-                    handleTurnEnd(lineData[1]);
+                else{
+                    if(lineData[0].equals(userId)){
+                        myLine.add(lineData[1]);
+                    }
+                    else {
+                        handleTurnEnd(lineData[1]);
+                    }
                 }
             }
             serverChat.append(msg+"\n");
@@ -508,6 +529,7 @@ public class Client extends JFrame {
         bw.flush();
         serverChat.append("매칭을 시작합니다.\n");
         setConnectState(new Matching());
+        resultGame = false;
 
         JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
         this.getContentPane().removeAll();
@@ -521,6 +543,12 @@ public class Client extends JFrame {
         serverChat.append("게임이 종료되었습니다.\n");
         this.getContentPane().removeAll();
         JPanel jPanel = new JPanel();
+        if(resultGame == false){
+            jPanel.add(failLabel, BorderLayout.CENTER);
+        }
+        else {
+            jPanel.add(winLabel, BorderLayout.CENTER);
+        }
         jPanel.setBackground(Color.BLACK);
         this.getContentPane().add(jPanel, BorderLayout.CENTER);
         this.getContentPane().add(serverChat, BorderLayout.EAST);
@@ -528,8 +556,6 @@ public class Client extends JFrame {
         matching.setEnabled(true);
         backTurn.setEnabled(false);
         turn.setEnabled(false);
-//        bw.write("게임종료\n");
-//        bw.flush();
         this.revalidate();
         repaint();
         setConnectState(new EndGame());
@@ -563,9 +589,18 @@ public class Client extends JFrame {
         serverChat.append("매칭을 시작합니다.\n");
         setConnectState(new Matching());
 
+        JPanel wrapper = new JPanel(new FlowLayout());
+        JPanel jpanel = new JPanel(new BorderLayout());
+        jpanel.setBackground(Color.white);
+        wrapper.setBackground(Color.white);
         JPanel matchingPanel = new PraticeGamePanel(4); // 4x4 점
+        //matchingPanel.setPreferredSize(new Dimension(100, 100));
+        wrapper.add(matchingPanel);
+        JLabel jLabel = new JLabel("매칭 중");
+        jpanel.add(jLabel, BorderLayout.NORTH);
+        jpanel.add(wrapper, BorderLayout.CENTER);
         this.getContentPane().removeAll();
-        this.getContentPane().add(matchingPanel, BorderLayout.CENTER);
+        this.getContentPane().add(jpanel, BorderLayout.CENTER);
         this.getContentPane().add(serverChat, BorderLayout.EAST);
         this.getContentPane().add(controlPanel, BorderLayout.SOUTH);
         this.revalidate();
